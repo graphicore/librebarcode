@@ -1,0 +1,36 @@
+{
+  "name": "barcodelibre",
+  "version": "0.0.0",
+  "homepage": "https://github.com/graphicore/barcodelibre",
+  "authors": [
+    "Lasse Fister <commander@graphicore.de>"
+  ],
+  "description": "BarcodeLibre: barcode fonts for various barcode standards.",
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "barcode",
+    "barcode font",
+    "code 39",
+    "code 128"
+  ],
+  "license": "GPLv3",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "app/lib/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "requirejs-domReady": ">=2.0.1",
+    "Atem-RequireJS-Config": "https://github.com/graphicore/Atem-RequireJS-Config.git",
+    "requirejs": ">=2.2.0",
+    "ufoJS": "graphicore/ufoJS",
+    "Atem-Errors": "graphicore/Atem-Errors",
+    "Atem-IO": "graphicore/Atem-IO",
+    "js-yaml": ">=3.5.3"
+  }
+}
