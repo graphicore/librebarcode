@@ -30,7 +30,6 @@
     "requirejs": ">=2.2.0",
     "ufoJS": "graphicore/ufoJS",
     "Atem-Errors": "graphicore/Atem-Errors",
-    "Atem-IO": "graphicore/Atem-IO",
-    "js-yaml": ">=3.5.3"
+    "Atem-IO": "graphicore/Atem-IO"
   }
 }
