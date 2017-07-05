@@ -22,9 +22,11 @@ program.arguments(exports.command.arguments)
 requirejs([
     'Atem-IO/io/staticNodeJS'
   , 'BarcodeLibre/builder'
+  , 'fontkit'
 ], function (
     io
   , builder
+  , fontkit
 ) {
 
     function main (targetdir) {
@@ -37,7 +39,7 @@ requirejs([
             throw new Error('[targetdir] must not exist: "'+targetdir+'".');
         io.ensureDir(false, targetdir);
 
-        builder(io, targetdir);
+        builder(io, targetdir, program.fontbelow);
         //return
 
         //var rootDir = path.dirname(path.dirname(require.main.filename))
@@ -45,7 +47,7 @@ requirejs([
         //  ;
     }
     program.action(main);
-    //program .option('-p, --port <n>', 'The port to listen on (default: environment variable MOM_DEV_PORT (if unset, random))', parseInt);
+    program .option('-f, --fontbelow <path>', 'A font to write glyphs below the barcode.', fontkit.openSync);
     program.parse(process.argv);
 });
 

@@ -30,6 +30,8 @@
     "requirejs": ">=2.2.0",
     "ufoJS": "graphicore/ufoJS",
     "Atem-Errors": "graphicore/Atem-Errors",
-    "Atem-IO": "graphicore/Atem-IO"
+    "Atem-IO": "graphicore/Atem-IO",
+    "Atem-Pen-Case": "graphicore/Atem-Pen-Case",
+    "Atem-Math-Tools": "graphicore/Atem-Math-Tools"
   }
 }
