@@ -116,11 +116,12 @@ define([
 
     var NotImplementedError = errors.NotImplemented;
 
-    function AbstractBarcodeGlyph(name, targetChars) {
+    function AbstractBarcodeGlyph(name, targetChars, textBelowFlag) {
         this.name = name;
         this.targetCharCodes = targetChars.map(
                         function(char){ return char.charCodeAt(0);});
         this._parameters = null;
+        this.textBelowFlag = textBelowFlag;
     }
 
     var _p = AbstractBarcodeGlyph.prototype;
@@ -266,7 +267,6 @@ define([
         var i, l, glyph, drawPointsFunc;
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
-
             glyph.setParameters(this.parameters);
 
             drawPointsFunc = glyph.drawPoints.bind(glyph);
@@ -278,7 +278,8 @@ define([
 
             // now create all the compound glyphs
             glyph.targetCharCodes
-                .forEach(this._makeComponent.bind(this, glyphSet, glyph, fontBelow));
+                .forEach(this._makeComponent.bind(this, glyphSet, glyph
+                            , glyph.textBelowFlag ? fontBelow : undefined));
         }
     };
 
