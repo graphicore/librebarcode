@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# execute like this:
+#   $ rm -rf sources/* autohinted master_ttf fonts/*; # clean up, if needed.
+#   $ ./app/bin/buildAll
+
 
 cd `dirname $BASH_SOURCE`/../../;
 SOURCE_DIR=`pwd`/sources
@@ -12,6 +16,13 @@ DESCENDER=-400
 STYLE_NAME="Regular"
 X_HEIGHT=400
 CAP_HEIGHT=590
+VENDOR_ID="GRCR"
+LICENSE='This Font Software is licensed under the SIL Open Font '\
+'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
+LICENSE_URL='http://scripts.sil.org/OFL'
+VERSION="Version 1.000"
+VERSION_MAJOR=1
+VERSION_MINOR=0
 
 FONTINFO_CODE39=$(cat <<EOT
 {
@@ -22,6 +33,14 @@ FONTINFO_CODE39=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
+  , "openTypeOS2Selection": []
+  , "openTypeOS2VendorID": "${VENDOR_ID}"
+  , "openTypeNameLicense": "${LICENSE}"
+  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+  , "openTypeNameVersion": "${VERSION}"
+  , "versionMajor": ${VERSION_MAJOR}
+  , "versionMinor": ${VERSION_MINOR}
+  , "openTypeOS2TypoLineGap": 0
 }
 EOT
 )
@@ -29,7 +48,7 @@ EOT
 
 PARAMETERS_CODE39=$(cat <<EOT
 {
-    "Nothing": 123
+    "example": 123
 }
 EOT
 )
@@ -43,6 +62,14 @@ FONTINFO_CODE39TEXT=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
+  , "openTypeOS2Selection": []
+  , "openTypeOS2VendorID": "${VENDOR_ID}"
+  , "openTypeNameLicense": "${LICENSE}"
+  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+  , "openTypeNameVersion": "${VERSION}"
+  , "versionMajor": ${VERSION_MAJOR}
+  , "versionMinor": ${VERSION_MINOR}
+  , "openTypeOS2TypoLineGap": 0
 }
 EOT
 )
@@ -56,6 +83,14 @@ FONTINFO_CODE128=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
+  , "openTypeOS2Selection": []
+  , "openTypeOS2VendorID": "${VENDOR_ID}"
+  , "openTypeNameLicense": "${LICENSE}"
+  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+  , "openTypeNameVersion": "${VERSION}"
+  , "versionMajor": ${VERSION_MAJOR}
+  , "versionMinor": ${VERSION_MINOR}
+  , "openTypeOS2TypoLineGap": 0
 }
 EOT
 )
@@ -69,6 +104,14 @@ FONTINFO_CODE128TEXT=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
+  , "openTypeOS2Selection": []
+  , "openTypeOS2VendorID": "${VENDOR_ID}"
+  , "openTypeNameLicense": "${LICENSE}"
+  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+  , "openTypeNameVersion": "${VERSION}"
+  , "versionMajor": ${VERSION_MAJOR}
+  , "versionMinor": ${VERSION_MINOR}
+  , "openTypeOS2TypoLineGap": 0
 }
 EOT
 )
@@ -113,6 +156,10 @@ for TARGET in ${TARGETS[@]}; do
 
 done
 
-ls autohinted/master_ttf
-cp autohinted/master_ttf/* fonts
+cp autohinted/master_ttf/* fonts && \
+cp OFL.txt fonts && \
 rm -rf master_ttf autohinted
+ls fonts
+
+FILES=$(find fonts -type f -name "*.ttf")
+fontbakery fix-dsig --autofix $FILES;
