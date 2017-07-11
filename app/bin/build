@@ -2,8 +2,12 @@
 "use strict";
 
 exports.command = {
-    description: 'TODO'
-  , arguments: '[targetdir]'
+    description: [
+                  'Create barcode fonts for different barcode standards.'
+                , '[codetype] is either "Code128" or "Code39".'
+                , '[ufodir] is the path where the UFO directory will be created, must not exist.'
+               ].join('\n')
+  , arguments: '[codetype] [ufodir]'
 };
 
 if (require.main === module) {
@@ -29,25 +33,51 @@ requirejs([
   , fontkit
 ) {
 
-    function main (targetdir) {
-        if(!targetdir)
-            throw new Error('Please suppply [targetdir] argument.');
+    function main (codetype, ufodir) {
+        if(!ufodir)
+            throw new Error('Please suppply [ufodir] argument.');
         // Not entirely sure if this is actually needed but it may help
         // to avoid mistakes. In the end, we don't want to update existing
         // ufos but create new ones.
-        if(io.pathExists(false, targetdir))
-            throw new Error('[targetdir] must not exist: "'+targetdir+'".');
-        io.ensureDir(false, targetdir);
+        if(io.pathExists(false, ufodir))
+            throw new Error('[ufodir] must not exist: "'+ufodir+'".');
+        io.ensureDir(false, ufodir);
 
-        builder(io, targetdir, program.fontbelow);
-        //return
-
-        //var rootDir = path.dirname(path.dirname(require.main.filename))
-        //  , baseDir = getBaseDir(projectDirArgument)
-        //  ;
+        var parameters = program.parameters || {}
+          , fontinfo =  program.fontinfo || {}
+          ;
+        parameters.force = program.force || parameters.force || false;
+        builder(io, codetype, ufodir, program.fontbelow, fontinfo, parameters);
     }
+
     program.action(main);
-    program .option('-f, --fontbelow <path>', 'A font to write glyphs below the barcode.', fontkit.openSync);
+    program .option('-f, --fontbelow <path>', 'A font to write glyphs '
+                            + 'below the barcode.', fontkit.openSync);
+
+    program.option('--force', 'Run the program regardless of parameter '
+                            + 'validation errors (CAUTION: may produce '
+                            + 'bad results or break the built process).');
+    function parseJSON(name, data) {
+        var params;
+        try {
+            params = JSON.parse(data);
+        }
+        catch(err) {
+            console.warn('Can\'t parse '+name+'. > ',data);
+            throw err
+        }
+        if( params.toString() !== '[object Object]')
+            throw new Error (name+' must be an object, but got: ' + params.toString());
+        return params;
+    }
+    program.option('-p, --parameters <json>', 'JSON string (an object) with '
+                            + 'parameters for the code-type builder.',
+                  parseJSON.bind(null, '--parameters')
+                  );
+    program.option('-i, --fontinfo <json>', 'JSON string (an object) with '
+                            + 'fontinfo data for the UFO.',
+                  parseJSON.bind(null, '--fontinfo')
+                  );
     program.parse(process.argv);
 });
 

@@ -141,7 +141,11 @@ define([
     })(errors);
 
 
-    function AbstractBarcodeBuilder(){
+    var ValidationError = errors.Validation
+      , validate = validation.validate
+      ;
+
+    function AbstractBarcodeBuilder() {
         this.glyphs = [];
         // the first argument passed to the glyphs drawPoints method
         this.parameters = null;
@@ -282,6 +286,50 @@ define([
             glyph.targetCharCodes
                 .forEach(this._makeComponent.bind(this, glyphSet, glyph
                             , glyph.textBelowFlag ? fontBelow : undefined));
+        }
+    };
+
+    _p._defaultParameters = {
+        // At the momemnt generic to all barcode fonts:
+        force: false // ignore validation problems and just run
+      , bottom: 0
+      , top: 590
+      , fontBelowHeight: 390
+    };
+
+    _p._validators = [
+        function checkBottom(params) {
+            validation.validateNumber('bottom', params.bottom);
+        }
+      , function checkTop(params) {
+            validation.validateNumber('top', params.top);
+            if(params.top <= params.bottom)
+                throw new ValidationError('"top" must be bigger than bottom.');
+        }
+      , function checkFontBelowHeight(params) {
+            validation.validatePositiveNumber('fontBelowHeight', params.fontBelowHeight);
+        }
+    ];
+
+    _p._validateParameters = function(userParameters) {
+        return validate.call(this, this._validators, this._defaultParameters, userParameters);
+    };
+
+    _p.reportParameters = function(logger) {
+        var i, l, keys, key, value, isDefault;
+        keys = [];
+        for(key in this.parameters)
+            keys.push(key);
+        keys.sort();
+        logger = logger || console;
+        logger.log('Got following parameters for ' + this.constructor.name + ':');
+        for(i=0,l=keys.length;i<l;i++) {
+            key = keys[i];
+            value = this.parameters[key];
+            isDefault = (key in this._defaultParameters
+                                && this._defaultParameters[key] === value);
+            logger.log('  ' + key + ':'
+                                , value + (isDefault ? '(default)' : ''));
         }
     };
 

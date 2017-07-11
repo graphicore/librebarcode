@@ -81,7 +81,6 @@ define([
         ]
     };
 
-
     var Code39Glyph = (function(Parent) {
     // "use strict";
     function Code39Glyph(value, pattern, name, targetCharCodes, textBelowFlag) {
@@ -174,24 +173,50 @@ define([
 
     var Parent = abstract.BarcodeBuilder;
 
-    function Code39Builder() {
+    function Code39Builder(userParameters) {
         Parent.call(this);
         this._initGlyphs();
-        this.parameters = {
-          // specific:
-            narrow: 30
-          , wide: 90
-          // generic:
-          , bottom: 0
-          , top: 590
-          , fontBelowHeight: 390
-        };
+
+        // validation
+        this.parameters = this._validateParameters(userParameters);
     }
 
     var _p = Code39Builder.prototype = Object.create(Parent.prototype);
     _p.constructor = Code39Builder;
     _p._glyphData = data.glyphs;
     _p.BarcodeGlyphType = Code39Glyph;
+
+    _p._defaultParameters = Object.create(Parent.prototype._defaultParameters);
+     //  narrow/wide should be between 1/2 and 1/3
+    _p._defaultParameters.narrow = 30;
+    // for small printed codes a wider ratio makes sense, can
+    // also help with low resolution media or scanners.
+    // max 3 min 2
+    _p._defaultParameters.wideToNarrowRatio = 3;
+
+    _p._validators = Parent.prototype._validators.slice();
+    Array.prototype.push.apply(_p._validators, [
+        function checkNarrow(params) {
+            validation.validatePositiveNumber('narrow', params.narrow);
+        }
+      , function checkOrSetWide(params) {
+            var ratio;
+            if('wide' in params) {
+                // `wide` was set explicitly
+                validation.validatePositiveNumber('wide', params.wide);
+                ratio = params.wide / params.narrow;
+                validation.validateMinMax('ratio wide/narrow', ratio, 2, 3);
+                params.wideToNarrowRatio = ratio;
+            }
+            else {
+                // set wide via ratio
+                validation.validateNumber('wideToNarrowRatio', params.wideToNarrowRatio);
+                validation.validateMinMax('wideToNarrowRatio', params.wideToNarrowRatio
+                                                                , 2, 3);
+                params.wide = params.narrow * params.wideToNarrowRatio;
+            }
+        }
+    ]);
 
     return {
         Builder: Code39Builder

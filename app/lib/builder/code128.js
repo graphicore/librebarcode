@@ -207,17 +207,12 @@ define([
 
     var Parent = abstract.BarcodeBuilder;
 
-    function Code128Builder() {
+    function Code128Builder(userParameters) {
         Parent.call(this);
         this._initGlyphs();
-        this.parameters = {
-          // specific:
-            unit: 30
-          // generic:
-          , bottom: 0
-          , top: 590
-          , fontBelowHeight: 390
-        };
+
+        // validation
+        this.parameters = this._validateParameters(userParameters);
     }
 
     var _p = Code128Builder.prototype = Object.create(Parent.prototype);
@@ -225,6 +220,16 @@ define([
 
     _p._glyphData = data.glyphs;
     _p.BarcodeGlyphType = Code128Glyph;
+
+    _p._defaultParameters = Object.create(Parent.prototype._defaultParameters);
+    _p._defaultParameters.unit = 30;
+    _p._validators = Parent.prototype._validators.slice();
+
+    Array.prototype.push.apply(_p._validators, [
+        function checkUnit(params) {
+            validation.validatePositiveNumber('unit', params.unit);
+        }
+    ]);
 
     return {
         Builder: Code128Builder

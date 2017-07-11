@@ -15,30 +15,47 @@ define([
 
     // TODO: unittests of our endproducts should reveal errors, i.e.
     // encode each available symbol in a barcode, make an image, scan that
+    var Builders = {
+        Code128: Code128Builder
+      , Code39: Code39Builder
+    };
 
-    return function(io, path, fontBelow) {
-        var ufoWriter = UFOWriter.factory(false, io, path, 3)
-          , builder = new Code128Builder()
+    return function(io, codetype, ufodir, fontBelow, fontinfo, parameters) {
+        var ufoWriter = UFOWriter.factory(false, io, ufodir, 3)
+          , builder
           // default glyph set
           , glyphSet = ufoWriter.getGlyphSet(false)
-          , fontinfo
+          , minFontinfo, k, info
           ;
+        if (!(codetype in Builders))
+            throw new Error('Code type "' + codetype + '" is unknown. '
+                + 'Use one of: ' + Object.keys(Builders).join(', ') + '.');
 
+        builder = new Builders[codetype](parameters);
+        builder.reportParameters();
         builder.populateGlyphSet(glyphSet, fontBelow);
 
         glyphSet.writeContents(false);
         // this is a stub
         // fontforge requires a fontinfo.plist that defines unitsPerEm
-        fontinfo = {
+        minFontinfo = {
               unitsPerEm: 1000
             , ascender: 600
             , descender: -400
-            , familyName: 'BarcodeLibreTesting'
-            , styleName: 'Regular'
-            , xHeight: 400
-            , capHeight: 590
         };
-        ufoWriter.writeInfo(false, fontinfo);
+
+        info = Object.create(null);
+        for (k in minFontinfo)
+            info[k]=minFontinfo[k];
+        for (k in fontinfo)
+            info[k]=fontinfo[k];
+            // Add at least:
+            //    familyName
+            //    styleName
+            //    xHeight
+            //    capHeight
+            // but you'll need more info for a good font!
+        ufoWriter.writeInfo(false, info);
         // TODO now write the real metadata ...
     };
 });
