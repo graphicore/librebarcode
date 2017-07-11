@@ -3,11 +3,13 @@ define([
   , 'LibreBarcode/validation'
   , 'Atem-Pen-Case/pens/AbstractPen'
   , 'Atem-Math-Tools/transform'
+  , 'Atem-Pen-Case/pens/TransformPointPen'
 ], function(
     errors
   , validation
   , AbstractPen
   , transform
+  , TransformPointPen
 ) {
     "use strict";
 
@@ -143,6 +145,7 @@ define([
 
     var ValidationError = errors.Validation
       , validate = validation.validate
+      , ValueError = errors.Value
       ;
 
     function AbstractBarcodeBuilder() {
@@ -181,19 +184,24 @@ define([
         pen.addComponent( name, transformation || [1, 0, 0, 1, 0, 0] );
     };
 
-    _p._makeGlyphBelowComponent = function(glyphSet, fontBelow, charcode) {
+    _p._makeGlyphBelowComponent = function(glyphSet, fontBelow, charcode
+                                                        , transformation) {
         var glyph = fontBelow.glyphForCodePoint(charcode)
           , name = 'below-' + this._charcode2name(charcode)
+            // only interested in the x movement to determine the new advanceWidth
+          , advanceWidth = transformation.transformPoint([glyph.advanceWidth, 0])[0]
           , glifData = {
                 unicodes: []
-              , width: glyph.advanceWidth
+              , width: advanceWidth
             }
           ;
         function drawPointsFunc(pen) {
             var commands = glyph.path.commands
-              , s2pPen = new SegmentToPointPen(pen)
+              , tpen = new TransformPointPen(pen, transformation)
+              , s2pPen = new SegmentToPointPen(tpen)
               , i, l, command, args, points
               ;
+
             // segments to point pen
             for(i=0,l=commands.length;i<l;i++) {
                 command = commands[i].command;
@@ -217,6 +225,17 @@ define([
                     }
                     s2pPen.qCurveTo.apply(s2pPen, points);
                     break;
+                  case 'bezierCurveTo':
+                    points  = [];
+                    args = args.slice();
+                    while(args.length) {
+                        points.push(args.slice(0,2));
+                        args = args.slice(2);
+                    }
+                    s2pPen.curveTo.apply(s2pPen, points);
+                    break;
+                  default:
+                    throw new ValueError('Curve command "' +command+ '" unknown.');
                 }
             }
         }
@@ -225,7 +244,7 @@ define([
                              , undefined // formatVersion
                              , {precision: -1} // make precision configurable?
                              );
-        return {name: name, advanceWidth: glyph.advanceWidth};
+        return {name: name, advanceWidth: advanceWidth};
     };
 
     _p._makeComponent = function (glyphSet, component, fontBelow, charcode) {
@@ -240,24 +259,34 @@ define([
                 this._drawAddComponent(name, null, pen);
                 if(!fontBelow || !fontBelow.hasGlyphForCodePoint(charcode))
                     return;
-                glyph = this._makeGlyphBelowComponent(glyphSet, fontBelow, charcode);
-                height = fontBelow['OS/2'].typoAscender
-                                    - fontBelow['OS/2'].typoDescender;
                 // Using height to calculate the scale is good, because
                 // it creates the same scaling for all of the font.
                 // This results in the new height fitting into fontBelowHeight
                 // units after scaling.
+                height = fontBelow['OS/2'].typoAscender
+                                    - fontBelow['OS/2'].typoDescender;
                 scale = this.parameters.fontBelowHeight / height;
+
+                // Make the skaling transformation and also changing
+                // the advance width earlier, directly in the original drawing
+                // (did use only the transformation of the component earlier),
+                // otherwise, very huge fonts will screw the calculations
+                // of average glyph width and such.
+                transformation = new Transform().scale(scale);
+                glyph = this._makeGlyphBelowComponent(glyphSet, fontBelow
+                                                , charcode, transformation);
+
+
                 transformation = new Transform()
                         .translate(
                                 // center using advance width, so the spacing
                                 // of the giving font still has some influence
                                 // which is rather good.
-                                (component.width - glyph.advanceWidth * scale) / 2
+                                (component.width - glyph.advanceWidth) / 2
                                 // move down just the amount of the ascender
                                 // that is still left.
                               , -fontBelow['OS/2'].typoAscender * scale
-                        ).scale(scale);
+                        );
 
                 this._drawAddComponent(glyph.name, transformation, pen);
             }.bind(this, component.name)
