@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+cd `dirname $BASH_SOURCE`/../../;
+SOURCE_DIR=`pwd`/sources
+TEXT_BELOW_FONT=`pwd`/../fonts/ofl/inconsolata/Inconsolata-Regular.ttf
+BUILD="./app/bin/build"
+
+FAMILY_BASE_NAME="Libre Barcode"
+UNITS_PER_EM=1000
+ASCENDER=600
+DESCENDER=-400
+STYLE_NAME="Regular"
+X_HEIGHT=400
+CAP_HEIGHT=590
+
+FONTINFO_CODE39=$(cat <<EOT
+{
+    "familyName": "${FAMILY_BASE_NAME} 39"
+  , "unitsPerEm": ${UNITS_PER_EM}
+  , "ascender": ${ASCENDER}
+  , "descender": ${DESCENDER}
+  , "styleName": "${STYLE_NAME}"
+  , "xHeight": ${X_HEIGHT}
+  , "capHeight": ${CAP_HEIGHT}
+}
+EOT
+)
+
+
+PARAMETERS_CODE39=$(cat <<EOT
+{
+    "Nothing": 123
+}
+EOT
+)
+
+FONTINFO_CODE39TEXT=$(cat <<EOT
+{
+    "familyName": "${FAMILY_BASE_NAME} 39 Text"
+  , "unitsPerEm": ${UNITS_PER_EM}
+  , "ascender": ${ASCENDER}
+  , "descender": ${DESCENDER}
+  , "styleName": "${STYLE_NAME}"
+  , "xHeight": ${X_HEIGHT}
+  , "capHeight": ${CAP_HEIGHT}
+}
+EOT
+)
+
+FONTINFO_CODE128=$(cat <<EOT
+{
+    "familyName": "${FAMILY_BASE_NAME} 128"
+  , "unitsPerEm": ${UNITS_PER_EM}
+  , "ascender": ${ASCENDER}
+  , "descender": ${DESCENDER}
+  , "styleName": "${STYLE_NAME}"
+  , "xHeight": ${X_HEIGHT}
+  , "capHeight": ${CAP_HEIGHT}
+}
+EOT
+)
+
+FONTINFO_CODE128TEXT=$(cat <<EOT
+{
+    "familyName": "${FAMILY_BASE_NAME} 128 Text"
+  , "unitsPerEm": ${UNITS_PER_EM}
+  , "ascender": ${ASCENDER}
+  , "descender": ${DESCENDER}
+  , "styleName": "${STYLE_NAME}"
+  , "xHeight": ${X_HEIGHT}
+  , "capHeight": ${CAP_HEIGHT}
+}
+EOT
+)
+
+TARGETS=(CODE39 CODE39TEXT CODE128 CODE128TEXT)
+              # UFO_BASE CODE_TYPE USEFONT
+TARGET_CODE39=("Code39" "Code39" 0 )
+TARGET_CODE39TEXT=("Code39Text" "Code39" 1)
+TARGET_CODE128=("Code128" "Code128" 0)
+TARGET_CODE128TEXT=("Code128Text" "Code128" 1
+
+)
+
+#LibreBarcode${}-Regular.ufo
+#
+#SOURCE_DIR
+
+
+for TARGET in ${TARGETS[@]}; do
+    _FONTINFO_DATA_REFERENCE="FONTINFO_$TARGET"[@]
+    FONTINFO=( "${!_FONTINFO_DATA_REFERENCE}" )
+
+    _PARAMETERS_DATA_REFERENCE="PARAMETERS_$TARGET"[@]
+    PARAMETERS=( "${!_PARAMETERS_DATA_REFERENCE}")
+    if [ "${#PARAMETERS[@]}" -eq 0 ];then
+        PARAMETERS='{}'
+    fi
+
+    _TARGET_DATA_REFERENCE="TARGET_$TARGET"[@]
+    TARGET_DATA=( "${!_TARGET_DATA_REFERENCE}" ) # copies the list
+    UFO_BASE=${TARGET_DATA[0]}
+    UFO_DIR="$SOURCE_DIR/LibreBarcode${UFO_BASE}-Regular.ufo"
+    CODE_TYPE=${TARGET_DATA[1]}
+    USEFONT=${TARGET_DATA[2]}
+    FONTARG=""
+    if [ $USEFONT -eq 1 ];then
+        FONTARG=" --fontbelow $TEXT_BELOW_FONT "
+    fi
+
+    $BUILD $CODE_TYPE $UFO_DIR --fontinfo "$FONTINFO" --parameters "$PARAMETERS" $FONTARG
+    fontmake -u $UFO_DIR --keep-overlaps  -a -o ttf
+
+done
+
+ls autohinted/master_ttf
+cp autohinted/master_ttf/* fonts
+rm -rf master_ttf autohinted
