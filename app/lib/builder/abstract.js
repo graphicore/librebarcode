@@ -1,9 +1,11 @@
 define([
-    'Atem-Errors/errors'
+    'LibreBarcode/errors'
+  , 'LibreBarcode/validation'
   , 'Atem-Pen-Case/pens/AbstractPen'
   , 'Atem-Math-Tools/transform'
 ], function(
     errors
+  , validation
   , AbstractPen
   , transform
 ) {

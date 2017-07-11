@@ -1,7 +1,11 @@
 define([
-    'BarcodeLibre/builder/abstract'
+    'LibreBarcode/errors'
+  , 'LibreBarcode/validation'
+  , 'LibreBarcode/builder/abstract'
 ], function(
-    abstract
+    errors
+  , validation
+  , abstract
 ){
     "use strict";
 

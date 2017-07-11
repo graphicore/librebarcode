@@ -6,7 +6,7 @@ function(configure) {
             baseUrl: rootDir + '/lib'
           , bowerPrefix: 'bower_components'
           , paths: {
-                'BarcodeLibre': './'
+                'LibreBarcode': './'
             }
         }
       ;

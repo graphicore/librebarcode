@@ -1,7 +1,7 @@
 define([
     'ufojs/ufoLib/UFOWriter'
-  , 'BarcodeLibre/builder/code39'
-  , 'BarcodeLibre/builder/code128'
+  , 'LibreBarcode/builder/code39'
+  , 'LibreBarcode/builder/code128'
 ], function(
     UFOWriter
   , code39

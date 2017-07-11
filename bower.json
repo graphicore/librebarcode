@@ -1,11 +1,11 @@
 {
-  "name": "barcodelibre",
+  "name": "librebarcode",
   "version": "0.0.0",
-  "homepage": "https://github.com/graphicore/barcodelibre",
+  "homepage": "https://github.com/graphicore/librebarcode",
   "authors": [
     "Lasse Fister <commander@graphicore.de>"
   ],
-  "description": "BarcodeLibre: barcode fonts for various barcode standards.",
+  "description": "Libre Barcode: build barcode fonts for various barcode standards.",
   "moduleType": [
     "amd"
   ],

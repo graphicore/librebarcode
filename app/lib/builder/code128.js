@@ -1,7 +1,9 @@
 define([
-    'BarcodeLibre/builder/abstract'
+    'LibreBarcode/builder/abstract'
+  , 'LibreBarcode/validation'
 ], function(
     abstract
+  , validation
 ){
     "use strict";
 

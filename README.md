@@ -1,6 +1,16 @@
-# BarcodeLibre Font Project
+# Libre Barcode Font Project
 
-Fonts to write barcodes.
+Fonts to write barcodes:
+
+## Code 39
+
+* Libre Barcode 39
+* Libre Barcode 39 Text
+
+## Code 128
+
+* Libre Barcode 128
+* Libre Barcode 128 Text
 
 # Completed tasks:
 

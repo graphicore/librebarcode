@@ -21,7 +21,7 @@ program.arguments(exports.command.arguments)
 
 requirejs([
     'Atem-IO/io/staticNodeJS'
-  , 'BarcodeLibre/builder'
+  , 'LibreBarcode/builder'
   , 'fontkit'
 ], function (
     io

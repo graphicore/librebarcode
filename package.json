@@ -1,14 +1,14 @@
 {
-  "name": "barcodelibre",
+  "name": "librebarcode",
   "version": "0.0.0",
-  "description": "BarcodeLibre: barcode fonts for various barcode standards.",
+  "description": "Libre Barcode: create barcode fonts for various barcode standards.",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/graphicore/barcodelibre.git"
+    "url": "https://github.com/graphicore/librebarcode.git"
   },
   "keywords": [
     "barcode",
@@ -19,9 +19,9 @@
   "author": "Lasse Fister <commander@graphicore.de>",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/graphicore/barcodelibre/issues"
+    "url": "https://github.com/graphicore/librebarcode/issues"
   },
-  "homepage": "https://github.com/graphicore/barcodelibre",
+  "homepage": "https://github.com/graphicore/librebarcode",
   "devDependencies": {
     "bower": "*"
   },
