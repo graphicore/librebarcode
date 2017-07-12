@@ -152,7 +152,7 @@ for TARGET in ${TARGETS[@]}; do
     fi
 
     $BUILD $CODE_TYPE $UFO_DIR --fontinfo "$FONTINFO" --parameters "$PARAMETERS" $FONTARG
-    fontmake -u $UFO_DIR --keep-overlaps  -a -o ttf
+    fontmake -u $UFO_DIR --production-names --keep-overlaps --keep-direction -a -o ttf
 
 done
 

@@ -33,11 +33,10 @@ define([
 
         builder = new Builders[codetype](parameters);
         builder.reportParameters();
-        builder.populateGlyphSet(glyphSet, fontBelow);
 
-        glyphSet.writeContents(false);
-        // this is a stub
         // fontforge requires a fontinfo.plist that defines unitsPerEm
+        // AbstractBarcodeBuilder requires unitsPerEm, ascender descender
+        // to draw the .notdef glyph.
         minFontinfo = {
               unitsPerEm: 1000
             , ascender: 600
@@ -55,6 +54,9 @@ define([
             //    xHeight
             //    capHeight
             // but you'll need more info for a good font!
+
+        builder.populateGlyphSet(glyphSet, fontBelow, info);
+        glyphSet.writeContents(false);
         ufoWriter.writeInfo(false, info);
         // TODO now write the real metadata ...
     };

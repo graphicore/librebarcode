@@ -298,7 +298,80 @@ define([
                              );
     };
 
-    _p.populateGlyphSet = function(glyphSet, fontBelow) {
+    _p._addNotdef = function(glyphSet, fontinfo) {
+        var width = Math.round(fontinfo.unitsPerEm * 0.5)
+          , ascender = fontinfo.ascender
+          , descender = fontinfo.descender
+          , unitsPerEm = fontinfo.unitsPerEm
+          , glifData = {
+                unicodes: []
+              , width: width
+            }
+          ;
+
+        function drawNotdef (pen) {
+            var stroke = Math.round(unitsPerEm * 0.05)
+              , xMin = stroke
+              , xMax = width - stroke
+              , yMax = ascender
+              , yMin = descender
+              ;
+            pen.beginPath();
+            pen.addPoint([xMin, yMin], 'line');
+            pen.addPoint([xMin, yMax], 'line');
+            pen.addPoint([xMax, yMax], 'line');
+            pen.addPoint([xMax, yMin], 'line');
+            pen.endPath();
+
+            xMin += stroke;
+            xMax -= stroke;
+            yMax -= stroke;
+            yMin += stroke;
+
+            pen.beginPath();
+            pen.addPoint([xMin, yMin], 'line');
+            pen.addPoint([xMax, yMin], 'line');
+            pen.addPoint([xMax, yMax], 'line');
+            pen.addPoint([xMin, yMax], 'line');
+            pen.endPath();
+        }
+
+        glyphSet.writeGlyph(false, '.notdef', glifData
+                             , drawNotdef
+                             , undefined // formatVersion
+                             , {precision: -1} // make precision configurable?
+                             );
+    };
+
+    _p._drawEmptyMandatoryGlyphs = function(glyphSet) {
+        var glyphs = [
+           {
+                name: 'NULL'
+              , glifData: {
+                    unicodes:[0x0000]
+                  , width: 0
+                }
+            }
+          , {
+                name: 'CR'
+              , glifData: {
+                    unicodes:[0x000D]
+                  , width: 0
+                }
+            }
+          ]
+          , i, l
+          ;
+        function draw(){}
+        for(i=0,l=glyphs.length;i<l;i++)
+            glyphSet.writeGlyph(false, glyphs[i].name,  glyphs[i].glifData
+                             , draw
+                             , undefined // formatVersion
+                             , {precision: -1} // make precision configurable?
+                             );
+    };
+
+    _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
         var i, l, glyph, drawPointsFunc;
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
@@ -316,6 +389,10 @@ define([
                 .forEach(this._makeComponent.bind(this, glyphSet, glyph
                             , glyph.textBelowFlag ? fontBelow : undefined));
         }
+
+        this._addNotdef(glyphSet, fontinfo);
+        this._drawEmptyMandatoryGlyphs(glyphSet);
+
     };
 
     _p._defaultParameters = {

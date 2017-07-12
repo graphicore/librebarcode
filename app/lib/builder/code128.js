@@ -193,7 +193,7 @@ define([
             if (type === '0') continue;
 
             pen.beginPath();
-            // closed contours don't start with a move
+            // Closed contours don't start with a move
             pen.addPoint([left, bottom], 'line');
             pen.addPoint([left, top], 'line');
             pen.addPoint([right, top], 'line');
