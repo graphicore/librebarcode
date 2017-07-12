@@ -6,6 +6,11 @@
 
 cd `dirname $BASH_SOURCE`/../../;
 SOURCE_DIR=`pwd`/sources
+FONTS_DIR=`pwd`/fonts
+
+mkdir -p $SOURCE_DIR
+mkdir -p $FONTS_DIR
+
 TEXT_BELOW_FONT=`pwd`/../fonts/ofl/inconsolata/Inconsolata-Regular.ttf
 BUILD="./app/bin/build"
 
@@ -23,6 +28,14 @@ LICENSE_URL='http://scripts.sil.org/OFL'
 VERSION="Version 1.000"
 VERSION_MAJOR=1
 VERSION_MINOR=0
+
+# usWinAscent from 800 to 682 ???
+# OS/2 sTypoLineGap is not equal to 0
+# fsType is a legacy DRM-related field from the 80's and must be zero (disabled) in all fonts. Changes that must be applied to this font: OS/2 fsType from 4 to 0
+# Font contains the first few mandatory glyphs (.null or NULL, CR and space)?
+#       Warning: Font is missing glyphs for the following mandatory codepoints: 0x0000, 0x000D.
+# Digital Signature exists?
+#       ERROR: This font lacks a digital signature (DSIG table). Some applications may require one (even if only a dummy placeholder) in order to work properly.
 
 FONTINFO_CODE39=$(cat <<EOT
 {
