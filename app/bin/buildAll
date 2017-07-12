@@ -33,7 +33,7 @@ FONTINFO_CODE39=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Selection": []
+  , "openTypeOS2Type": []
   , "openTypeOS2VendorID": "${VENDOR_ID}"
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
@@ -62,7 +62,7 @@ FONTINFO_CODE39TEXT=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Selection": []
+  , "openTypeOS2Type": []
   , "openTypeOS2VendorID": "${VENDOR_ID}"
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
@@ -83,7 +83,7 @@ FONTINFO_CODE128=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Selection": []
+  , "openTypeOS2Type": []
   , "openTypeOS2VendorID": "${VENDOR_ID}"
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
@@ -104,7 +104,7 @@ FONTINFO_CODE128TEXT=$(cat <<EOT
   , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Selection": []
+  , "openTypeOS2Type": []
   , "openTypeOS2VendorID": "${VENDOR_ID}"
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
