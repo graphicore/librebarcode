@@ -15,10 +15,12 @@ TEXT_BELOW_FONT=`pwd`/../fonts/ofl/inconsolata/Inconsolata-Regular.ttf
 BUILD="./app/bin/build"
 
 FAMILY_BASE_NAME="Libre Barcode"
+
 UNITS_PER_EM=1000
 ASCENDER=600
 DESCENDER=-400
 STYLE_NAME="Regular"
+STYLEMAP_STYLE_NAME="regular"
 X_HEIGHT=400
 CAP_HEIGHT=590
 VENDOR_ID="GRCR"
@@ -40,10 +42,12 @@ VERSION_MINOR=0
 FONTINFO_CODE39=$(cat <<EOT
 {
     "familyName": "${FAMILY_BASE_NAME} 39"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39"
+  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
+  , "styleName": "${STYLE_NAME}"
   , "unitsPerEm": ${UNITS_PER_EM}
   , "ascender": ${ASCENDER}
   , "descender": ${DESCENDER}
-  , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
   , "openTypeOS2Type": []
@@ -69,10 +73,12 @@ EOT
 FONTINFO_CODE39TEXT=$(cat <<EOT
 {
     "familyName": "${FAMILY_BASE_NAME} 39 Text"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39 Text"
+  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
+  , "styleName": "${STYLE_NAME}"
   , "unitsPerEm": ${UNITS_PER_EM}
   , "ascender": ${ASCENDER}
   , "descender": ${DESCENDER}
-  , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
   , "openTypeOS2Type": []
@@ -90,10 +96,12 @@ EOT
 FONTINFO_CODE128=$(cat <<EOT
 {
     "familyName": "${FAMILY_BASE_NAME} 128"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 128"
+  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
+  , "styleName": "${STYLE_NAME}"
   , "unitsPerEm": ${UNITS_PER_EM}
   , "ascender": ${ASCENDER}
   , "descender": ${DESCENDER}
-  , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
   , "openTypeOS2Type": []
@@ -111,10 +119,12 @@ EOT
 FONTINFO_CODE128TEXT=$(cat <<EOT
 {
     "familyName": "${FAMILY_BASE_NAME} 128 Text"
+  , "styleName": "${STYLE_NAME}"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 128 Text"
+  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
   , "unitsPerEm": ${UNITS_PER_EM}
   , "ascender": ${ASCENDER}
   , "descender": ${DESCENDER}
-  , "styleName": "${STYLE_NAME}"
   , "xHeight": ${X_HEIGHT}
   , "capHeight": ${CAP_HEIGHT}
   , "openTypeOS2Type": []
