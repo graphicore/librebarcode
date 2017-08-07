@@ -44,32 +44,32 @@ define([
           , [   8, "▮| |▮|", "code-eight", ["8"], true]
           , [   9, "|▮ |▮|", "code-nine", ["9"], true]
           , [   0, "|| ▮▮|", "code-zero", ["0"], true]
-          , [  10, "▮|| |▮", "code-A", ["A"], true]
-          , [  11, "|▮| |▮", "code-B", ["B"], true]
-          , [  12, "▮▮| ||", "code-C", ["C"], true]
-          , [  13, "||▮ |▮", "code-D", ["D"], true]
-          , [  14, "▮|▮ ||", "code-E", ["E"], true]
-          , [  15, "|▮▮ ||", "code-F", ["F"], true]
-          , [  16, "||| ▮▮", "code-G", ["G"], true]
-          , [  17, "▮|| ▮|", "code-H", ["H"], true]
-          , [  18, "|▮| ▮|", "code-I", ["I"], true]
-          , [  19, "||▮ ▮|", "code-J", ["J"], true]
-          , [  20, "▮||| ▮", "code-K", ["K"], true]
-          , [  21, "|▮|| ▮", "code-L", ["L"], true]
-          , [  22, "▮▮|| |", "code-M", ["M"], true]
-          , [  23, "||▮| ▮", "code-N", ["N"], true]
-          , [  24, "▮|▮| |", "code-O", ["O"], true]
-          , [  25, "|▮▮| |", "code-P", ["P"], true]
-          , [  26, "|||▮ ▮", "code-Q", ["Q"], true]
-          , [  27, "▮||▮ |", "code-R", ["R"], true]
-          , [  28, "|▮|▮ |", "code-S", ["S"], true]
-          , [  29, "||▮▮ |", "code-T", ["T"], true]
-          , [  30, "▮ |||▮", "code-U", ["U"], true]
-          , [  31, "| ▮||▮", "code-V", ["V"], true]
-          , [  32, "▮ ▮|||", "code-W", ["W"], true]
-          , [  33, "| |▮|▮", "code-X", ["X"], true]
-          , [  34, "▮ |▮||", "code-Y", ["Y"], true]
-          , [  35, "| ▮▮||", "code-Z", ["Z"], true]
+          , [  10, "▮|| |▮", "code-A", ["A", "a"], true]
+          , [  11, "|▮| |▮", "code-B", ["B", "b"], true]
+          , [  12, "▮▮| ||", "code-C", ["C", "c"], true]
+          , [  13, "||▮ |▮", "code-D", ["D", "d"], true]
+          , [  14, "▮|▮ ||", "code-E", ["E", "e"], true]
+          , [  15, "|▮▮ ||", "code-F", ["F", "f"], true]
+          , [  16, "||| ▮▮", "code-G", ["G", "g"], true]
+          , [  17, "▮|| ▮|", "code-H", ["H", "h"], true]
+          , [  18, "|▮| ▮|", "code-I", ["I", "i"], true]
+          , [  19, "||▮ ▮|", "code-J", ["J", "j"], true]
+          , [  20, "▮||| ▮", "code-K", ["K", "k"], true]
+          , [  21, "|▮|| ▮", "code-L", ["L", "l"], true]
+          , [  22, "▮▮|| |", "code-M", ["M", "m"], true]
+          , [  23, "||▮| ▮", "code-N", ["N", "n"], true]
+          , [  24, "▮|▮| |", "code-O", ["O", "o"], true]
+          , [  25, "|▮▮| |", "code-P", ["P", "p"], true]
+          , [  26, "|||▮ ▮", "code-Q", ["Q", "q"], true]
+          , [  27, "▮||▮ |", "code-R", ["R", "r"], true]
+          , [  28, "|▮|▮ |", "code-S", ["S", "s"], true]
+          , [  29, "||▮▮ |", "code-T", ["T", "t"], true]
+          , [  30, "▮ |||▮", "code-U", ["U", "u"], true]
+          , [  31, "| ▮||▮", "code-V", ["V", "v"], true]
+          , [  32, "▮ ▮|||", "code-W", ["W", "w"], true]
+          , [  33, "| |▮|▮", "code-X", ["X", "x"], true]
+          , [  34, "▮ |▮||", "code-Y", ["Y", "y"], true]
+          , [  35, "| ▮▮||", "code-Z", ["Z", "z"], true]
           , [  36, "| ||▮▮", "code-minus", ["-"], true]
           , [  37, "▮ ||▮|", "code-period", ["."], true]
           , [  38, "| ▮|▮|", "code-space", [" ", "\u00A0"], false]
@@ -193,6 +193,14 @@ define([
     // also help with low resolution media or scanners.
     // max 3 min 2
     _p._defaultParameters.wideToNarrowRatio = 3;
+
+    // overrides abstract.BarcodeBuilder.prototype._makeGlyphBelowComponent
+    _p._makeGlyphBelowComponent = function (glyphSet, fontBelow, charcode, transformation) {
+      // In this version, we only have upper case symbols
+      var _charcode = String.fromCharCode(charcode).toUpperCase().charCodeAt(0);
+      return Parent.prototype._makeGlyphBelowComponent.call(this, glyphSet
+                                        , fontBelow, _charcode, transformation);
+    };
 
     _p._validators = Parent.prototype._validators.slice();
     Array.prototype.push.apply(_p._validators, [
