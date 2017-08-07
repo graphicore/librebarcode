@@ -27,6 +27,7 @@ VENDOR_ID="GRCR"
 LICENSE='This Font Software is licensed under the SIL Open Font '\
 'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
 LICENSE_URL='http://scripts.sil.org/OFL'
+COPYRIGHT="Copyright 2017 The Libre Barcode Project Authors (lasse@graphicore.de)"
 VERSION="Version 1.000"
 VERSION_MAJOR=1
 VERSION_MINOR=0
@@ -55,6 +56,7 @@ FONTINFO_CODE39=$(cat <<EOT
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
   , "openTypeNameVersion": "${VERSION}"
+  , "copyright": "${COPYRIGHT}"
   , "versionMajor": ${VERSION_MAJOR}
   , "versionMinor": ${VERSION_MINOR}
   , "openTypeOS2TypoLineGap": 0
@@ -86,6 +88,7 @@ FONTINFO_CODE39TEXT=$(cat <<EOT
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
   , "openTypeNameVersion": "${VERSION}"
+  , "copyright": "${COPYRIGHT}"
   , "versionMajor": ${VERSION_MAJOR}
   , "versionMinor": ${VERSION_MINOR}
   , "openTypeOS2TypoLineGap": 0
@@ -109,6 +112,7 @@ FONTINFO_CODE128=$(cat <<EOT
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
   , "openTypeNameVersion": "${VERSION}"
+  , "copyright": "${COPYRIGHT}"
   , "versionMajor": ${VERSION_MAJOR}
   , "versionMinor": ${VERSION_MINOR}
   , "openTypeOS2TypoLineGap": 0
@@ -132,6 +136,7 @@ FONTINFO_CODE128TEXT=$(cat <<EOT
   , "openTypeNameLicense": "${LICENSE}"
   , "openTypeNameLicenseURL": "${LICENSE_URL}"
   , "openTypeNameVersion": "${VERSION}"
+  , "copyright": "${COPYRIGHT}"
   , "versionMajor": ${VERSION_MAJOR}
   , "versionMinor": ${VERSION_MINOR}
   , "openTypeOS2TypoLineGap": 0
