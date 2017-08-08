@@ -28,9 +28,9 @@ LICENSE='This Font Software is licensed under the SIL Open Font '\
 'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
 LICENSE_URL='http://scripts.sil.org/OFL'
 COPYRIGHT="Copyright 2017 The Libre Barcode Project Authors (lasse@graphicore.de)"
-VERSION="Version 1.000"
+VERSION="Version 1.001"
 VERSION_MAJOR=1
-VERSION_MINOR=0
+VERSION_MINOR=1
 
 # usWinAscent from 800 to 682 ???
 # OS/2 sTypoLineGap is not equal to 0
