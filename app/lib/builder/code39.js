@@ -74,9 +74,9 @@ define([
           , [  37, "▮ ||▮|", "code-period", ["."], true]
           , [  38, "| ▮|▮|", "code-space", [" ", "\u00A0"], false]
           , [null, "| |▮▮|", "code-startstop", ["*"], false]
-          , [  39, "| || | |", "code-dollar", ["$"], true]
+          , [  39, "| | | ||", "code-dollar", ["$"], true]
           , [  40, "| | || |", "code-slash", ["/"], true]
-          , [  41, "| | | ||", "code-plus", ["+"], true]
+          , [  41, "| || | |", "code-plus", ["+"], true]
           , [  42, "|| | | |", "code-percent", ["%"], true]
         ]
     };
