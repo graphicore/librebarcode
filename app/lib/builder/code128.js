@@ -10,11 +10,11 @@ define([
     var data = {
         glyphs: [
             // the unicode chars are from:
-            //   https://en.wikipedia.org/wiki/Code_128
+            //   www.idautomation.com/barcode-fonts/code-128/user-manual.html
             //   http://www.jtbarton.com/Barcodes/Code128.aspx
             // checksum value, pattern, canonical id/name (based on Code Set B)
             // (name of the glyph in the font?), [unicode chars], textbelow_flag_or_charcodes
-            [   0, "11011001100", "code-space", [" ", "\u00A0" ,"Ô", "ü", "Ï"], false]
+            [   0, "11011001100", "code-space", [" ", "\u00A0" ,"Â"], false]
           , [   1, "11001101100", "code-exclam", ["!"], true]
           , [   2, "11001100110", "code-quotedbl", ["\""], true]
           , [   3, "10010011000", "code-numbersign", ["#"], true]
@@ -113,23 +113,23 @@ define([
             // the chars at the end override the chars before.
             // Like this, it works with the www.jtbarton.com Barcode
             // encoder, but it overrides some of the wikipedia.com encoding.
-          , [  95, "10111101000", "code-DEL", ["È", "ð", "Ã"], false]
-          , [  96, "10111100010", "code-FNC3", ["É", "ñ", "Ä"], false]
-          , [  97, "11110101000", "code-FNC2", ["Ê", "ò", "Å"], false]
-          , [  98, "11110100010", "code-ShiftA", ["Ë", "ó", "Æ"], false]
-          , [  99, "10111011110", "code-CodeC", ["Ì", "ô", "Ç"], false]
-          , [ 100, "10111101110", "code-FNC4", ["Í", "õ", "È"], false]
-          , [ 101, "11101011110", "code-CodeA", ["Î", "ö", "É"], false]
-          , [ 102, "11110101110", "code-FNC1", ["Ï", "÷", "Ê"], false]
-          , [ 103, "11010000100", "code-StartCodeA", ["Ð", "ø", "Ë"], false]
-          , [ 104, "11010010000", "code-StartCodeB", ["Ñ", "ù", "Ì"], false]
-          , [ 105, "11010011100", "code-StartCodeC", ["Ò", "ú", "Í"], false]
+          , [  95, "10111101000", "code-DEL", ["Ã"], false]
+          , [  96, "10111100010", "code-FNC3", ["Ä"], false]
+          , [  97, "11110101000", "code-FNC2", ["Å"], false]
+          , [  98, "11110100010", "code-ShiftA", ["Æ"], false]
+          , [  99, "10111011110", "code-CodeC", ["Ç"], false]
+          , [ 100, "10111101110", "code-FNC4", ["È"], false]
+          , [ 101, "11101011110", "code-CodeA", ["É"], false]
+          , [ 102, "11110101110", "code-FNC1", ["Ê"], false]
+          , [ 103, "11010000100", "code-StartCodeA", ["Ë"], false]
+          , [ 104, "11010010000", "code-StartCodeB", ["Ì"], false]
+          , [ 105, "11010011100", "code-StartCodeC", ["Í"], false]
             // not needed in the font, stoppattern is used
             //, [ 106, "11000111010", "code-stop", [], false]
             // TODO: what does this mean?
             // wikipedia:  In barcode fonts, the final bar is generally combined
             //        with the stop symbol to make a wider stop pattern.
-          , [null, "1100011101011", "code-stoppattern", ["Ó", "û", "Î"], false]
+          , [null, "1100011101011", "code-stoppattern", ["Î"], false]
             // Not needed in the font. A scanner needs this to know it's reading
             // right to left. It's the reverse of the "stop" symbol.
             //, [null, "11010111000", "code-reversestop", [], false]
