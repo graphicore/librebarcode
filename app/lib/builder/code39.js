@@ -30,7 +30,8 @@ define([
     // " ": white space (space)
     //  "":narrow space, is implicit between all bars where no " " wide space is present.
 
-    var data = {
+    var KeyError = errors.Key
+      , data = {
         glyphs: [
     // checksum value, pattern, canonical id/name (name of the glyph in the font?)
     //                                , [unicode chars], text_below_boolean_flag OR charcode
@@ -150,7 +151,7 @@ define([
           ;
 
         for(i=0, l=this.pattern.length;i<l;i++) {
-            if( i > 0 && this.pattern[i-1] !== ' ')
+            if(i > 0 && this.pattern[i-1] !== ' ')
                 advance += narrow;
             item = this.pattern[i];
             left = advance;
@@ -179,6 +180,7 @@ define([
 
         // validation
         this.parameters = this._validateParameters(userParameters);
+        this._char2Glyph = null;
     }
 
     var _p = Code39Builder.prototype = Object.create(Parent.prototype);
@@ -193,6 +195,32 @@ define([
     // also help with low resolution media or scanners.
     // max 3 min 2
     _p._defaultParameters.wideToNarrowRatio = 3;
+
+
+    _p.getGlyphByChar = function(char) {
+        var i, l, glyph, charCode, _char, registerCharcodes;
+
+        if(this._char2Glyph === null) {
+            this._char2Glyph = Object.create(null);
+            registerCharcodes = function (char2Glyph, glyph, charCode) {
+                char2Glyph[String.fromCharCode(charCode)] = glyph;
+            };
+            for(i=0,l=this.glyphs.length;i<l;i++) {
+                glyph = this.glyphs[i];
+                glyph.targetCharCodes.forEach(
+                    registerCharcodes.bind(null, this._char2Glyph, glyph));
+            }
+        }
+
+        _char = typeof char === 'number'
+                          ? String.fromCharCode(char)
+                          : char
+                          ;
+
+        if(!(_char in this._char2Glyph))
+          throw new KeyError('Char "'+_char+'" not found in Code39');
+        return this._char2Glyph[_char];
+    };
 
     // overrides abstract.BarcodeBuilder.prototype._makeGlyphBelowComponent
     _p._makeGlyphBelowComponent = function (glyphSet, fontBelow, charcode, transformation) {

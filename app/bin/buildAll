@@ -64,7 +64,7 @@ FONTINFO_CODE39=$(cat <<EOT
 EOT
 )
 
-
+# This is not used in this build currently
 PARAMETERS_CODE39=$(cat <<EOT
 {
     "example": 123
@@ -76,6 +76,54 @@ FONTINFO_CODE39TEXT=$(cat <<EOT
 {
     "familyName": "${FAMILY_BASE_NAME} 39 Text"
   , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39 Text"
+  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
+  , "styleName": "${STYLE_NAME}"
+  , "unitsPerEm": ${UNITS_PER_EM}
+  , "ascender": ${ASCENDER}
+  , "descender": ${DESCENDER}
+  , "xHeight": ${X_HEIGHT}
+  , "capHeight": ${CAP_HEIGHT}
+  , "openTypeOS2Type": []
+  , "openTypeOS2VendorID": "${VENDOR_ID}"
+  , "openTypeNameLicense": "${LICENSE}"
+  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+  , "openTypeNameVersion": "${VERSION}"
+  , "copyright": "${COPYRIGHT}"
+  , "versionMajor": ${VERSION_MAJOR}
+  , "versionMinor": ${VERSION_MINOR}
+  , "openTypeOS2TypoLineGap": 0
+}
+EOT
+)
+
+FONTINFO_CODE39EXTENDED=$(cat <<EOT
+{
+    "familyName": "${FAMILY_BASE_NAME} 39 Extended"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39 Extended"
+  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
+  , "styleName": "${STYLE_NAME}"
+  , "unitsPerEm": ${UNITS_PER_EM}
+  , "ascender": ${ASCENDER}
+  , "descender": ${DESCENDER}
+  , "xHeight": ${X_HEIGHT}
+  , "capHeight": ${CAP_HEIGHT}
+  , "openTypeOS2Type": []
+  , "openTypeOS2VendorID": "${VENDOR_ID}"
+  , "openTypeNameLicense": "${LICENSE}"
+  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+  , "openTypeNameVersion": "${VERSION}"
+  , "copyright": "${COPYRIGHT}"
+  , "versionMajor": ${VERSION_MAJOR}
+  , "versionMinor": ${VERSION_MINOR}
+  , "openTypeOS2TypoLineGap": 0
+}
+EOT
+)
+
+FONTINFO_CODE39EXTENDEDTEXT=$(cat <<EOT
+{
+    "familyName": "${FAMILY_BASE_NAME} 39 Extended Text"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39 Extended Text"
   , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
   , "styleName": "${STYLE_NAME}"
   , "unitsPerEm": ${UNITS_PER_EM}
@@ -144,14 +192,14 @@ FONTINFO_CODE128TEXT=$(cat <<EOT
 EOT
 )
 
-TARGETS=(CODE39 CODE39TEXT CODE128 CODE128TEXT)
+TARGETS=(CODE39 CODE39TEXT CODE39EXTENDED CODE39EXTENDEDTEXT CODE128 CODE128TEXT)
               # UFO_BASE CODE_TYPE USEFONT
 TARGET_CODE39=("Code39" "Code39" 0 )
 TARGET_CODE39TEXT=("Code39Text" "Code39" 1)
+TARGET_CODE39EXTENDED=("Code39Extended" "Code39Extended" 0 )
+TARGET_CODE39EXTENDEDTEXT=("Code39ExtendedText" "Code39Extended" 1)
 TARGET_CODE128=("Code128" "Code128" 0)
-TARGET_CODE128TEXT=("Code128Text" "Code128" 1
-
-)
+TARGET_CODE128TEXT=("Code128Text" "Code128" 1)
 
 #LibreBarcode${}-Regular.ufo
 #

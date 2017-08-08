@@ -1,23 +1,22 @@
 define([
     'ufojs/ufoLib/UFOWriter'
   , 'LibreBarcode/builder/code39'
+  , 'LibreBarcode/builder/code39Extended'
   , 'LibreBarcode/builder/code128'
 ], function(
     UFOWriter
   , code39
+  , code39Extended
   , code128
 ){
     "use strict";
 
-    var Code39Builder = code39.Builder
-      , Code128Builder = code128.Builder
-      ;
-
     // TODO: unittests of our endproducts should reveal errors, i.e.
     // encode each available symbol in a barcode, make an image, scan that
     var Builders = {
-        Code128: Code128Builder
-      , Code39: Code39Builder
+        Code128: code128.Builder
+      , Code39: code39.Builder
+      , Code39Extended:  code39Extended.Builder
     };
 
     return function(io, codetype, ufodir, fontBelow, fontinfo, parameters) {
