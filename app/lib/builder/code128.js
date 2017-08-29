@@ -14,7 +14,7 @@ define([
             //   http://www.jtbarton.com/Barcodes/Code128.aspx
             // checksum value, pattern, canonical id/name (based on Code Set B)
             // (name of the glyph in the font?), [unicode chars], textbelow_flag_or_charcodes
-            [   0, "11011001100", "code-space", [" ", "\u00A0" ,"Â"], false]
+            [   0, "11011001100", "code-space", [" ", "Â"], false]
           , [   1, "11001101100", "code-exclam", ["!"], true]
           , [   2, "11001100110", "code-quotedbl", ["\""], true]
           , [   3, "10010011000", "code-numbersign", ["#"], true]
@@ -209,10 +209,9 @@ define([
 
     function Code128Builder(userParameters) {
         Parent.call(this);
-        this._initGlyphs();
-
         // validation
         this.parameters = this._validateParameters(userParameters);
+        this._initGlyphs();
     }
 
     var _p = Code128Builder.prototype = Object.create(Parent.prototype);

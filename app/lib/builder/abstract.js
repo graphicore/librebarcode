@@ -13,7 +13,9 @@ define([
 ) {
     "use strict";
 
-    var Transform = transform.Transform;
+    var Transform = transform.Transform
+      , KeyError = errors.Key
+      ;
 
     // TODO: move this to Atem-Pen-Case
     var SegmentToPointPen = (function(Parent, errors) {
@@ -167,18 +169,49 @@ define([
         this.glyphs = [];
         // the first argument passed to the glyphs drawPoints method
         this.parameters = null;
+        this._char2Glyph = null;
     }
 
     var _p = AbstractBarcodeBuilder.prototype;
     _p.constructor = AbstractBarcodeBuilder;
     _p._glyphData = null;
-    _p._initGlyphs = function() {
-        var i, l, glyph;
+    _p._initGlyphs = function(genericExtraArgs) {
+        var i, l, glyph, args;
         for(i=0,l=this._glyphData.length;i<l;i++) {
             glyph = Object.create(this.BarcodeGlyphType.prototype);
-            this.BarcodeGlyphType.apply(glyph, this._glyphData[i]);
+            args = []
+            if(genericExtraArgs)
+                Array.prototype.push.apply(args, genericExtraArgs);
+            Array.prototype.push.apply(args, this._glyphData[i]);
+            this.BarcodeGlyphType.apply(glyph, args);
+            glyph.setParameters(this.parameters);
             this.glyphs.push(glyph);
         }
+    };
+
+    _p.getGlyphByChar = function(char) {
+        var i, l, glyph, _char, registerCharcodes;
+
+        if(this._char2Glyph === null) {
+            this._char2Glyph = Object.create(null);
+            registerCharcodes = function (char2Glyph, glyph, charCode) {
+                char2Glyph[String.fromCharCode(charCode)] = glyph;
+            };
+            for(i=0,l=this.glyphs.length;i<l;i++) {
+                glyph = this.glyphs[i];
+                glyph.targetCharCodes.forEach(
+                    registerCharcodes.bind(null, this._char2Glyph, glyph));
+            }
+        }
+
+        _char = typeof char === 'number'
+                          ? String.fromCharCode(char)
+                          : char
+                          ;
+
+        if(!(_char in this._char2Glyph))
+          throw new KeyError('Char "'+_char+'" not found in ' + this.constructor.name);
+        return this._char2Glyph[_char];
     };
 
     _p.BarcodeGlyphType = AbstractBarcodeGlyph;
@@ -290,15 +323,14 @@ define([
         this._drawAddComponent(glyph.name, transformation, pen);
     };
 
-    _p._makeComponent = function(glyphSet, components, fontBelow, charcode) {
+    _p._makeComponent = function(glyphSet, fromGlyph, fontBelow, charcode) {
         // if more than one components are given they are drawn directly
         // next to each other.
         var name = charcode2name(charcode)
+          , components = fromGlyph.components || [fromGlyph]
           , glifData = {
                 unicodes: [charcode]
-              , width: components.reduce(function(sum, component) {
-                    return sum + component.width;
-                }, 0)
+              , width: fromGlyph.width
             }
           , drawPointsFunc = function(components, pen) {
                 // jshint: validthis: true
@@ -360,7 +392,7 @@ define([
         this._writeGlyph(glyphSet, '.notdef', glifData, drawNotdef);
     };
 
-    _p.drawEmptyMandatoryGlyphs = function(glyphSet) {
+    _p.drawEmptyMandatoryGlyphs = function(glyphSet, names) {
         var glyphs = [
            {
                 name: 'NULL'
@@ -376,19 +408,35 @@ define([
                   , width: 0
                 }
             }
+          , {
+                name: 'nbspace'
+              , prodName: 'uni00A0'
+              , glifData: {
+                    unicodes:[0x00A0]
+                    // sane width as space
+                  , width: this.getGlyphByChar(' ').width
+                }
+            }
           ]
           , i, l
           ;
         function draw(){}
-        for(i=0,l=glyphs.length;i<l;i++)
-            this._writeGlyph(glyphSet, glyphs[i].name, glyphs[i].glifData, draw);
+        for(i=0,l=glyphs.length;i<l;i++) {
+            // If names is defined it must be a set, acting as a whitelist
+            // for glyphs to be added.
+            if(names && !names.has(glyphs[i].name))
+                continue;
+            this._writeGlyph(glyphSet
+                           , glyphs[i].prodName || glyphs[i].name
+                           , glyphs[i].glifData
+                           , draw);
+        }
     };
 
     _p.drawGlyphs = function(glyphSet) {
         var i, l, glyph, drawPointsFunc;
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
-            glyph.setParameters(this.parameters);
             drawPointsFunc = glyph.drawPoints.bind(glyph);
             this._writeGlyph(glyphSet, glyph.name, glyph.glifData, drawPointsFunc);
         }
@@ -399,7 +447,7 @@ define([
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
             glyph.targetCharCodes
-                .forEach(this._makeComponent.bind(this, glyphSet, [glyph]
+                .forEach(this._makeComponent.bind(this, glyphSet, glyph
                             , glyph.textBelowFlag ? fontBelow : undefined));
         }
     };

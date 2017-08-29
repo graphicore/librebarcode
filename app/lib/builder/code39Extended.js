@@ -51,7 +51,6 @@ define([
         , [ 30, 'RS', '%D', false]
         , [ 31, 'US', '%E', false]
         , [ 32, ' ', ' ', false] // space
-        , [ 0x00A0, ' ', ' ', false] // nb space
         , [ 33, '!', '/A', true]
         , [ 34, '"', '/B', true]
         , [ 35, '#', '/C', true]
@@ -166,10 +165,15 @@ define([
       ;
 
     var Code39ExtendedGlyph = (function(Parent) {
-    function Code39ExtendedGlyph(charcode, characer, code39Encoding, textBelowFlag) {
+    function Code39ExtendedGlyph(getGlyphByChar, charcode, characer, code39Encoding, textBelowFlag) {
         Parent.call(this,  charcode2name(charcode), [charcode], textBelowFlag);
         this.characer = characer; // unused, but nice as info in glyphs.data
         this.code39Encoding = code39Encoding;
+
+        this.components = this.code39Encoding.split('').map(getGlyphByChar);
+        this.width = this.components.reduce(function(sum, component) {
+            return sum + component.width;
+        }, 0);
     }
 
     var _p = Code39ExtendedGlyph.prototype = Object.create(Parent.prototype);
@@ -183,10 +187,10 @@ define([
 
     function Code39ExtendedBuilder(userParameters) {
         Parent.call(this);
-        this._initGlyphs();
-        this.parameters = this._validateParameters(userParameters);
         // tight coupling here ...
         this.code39builder = new Code39Builder(userParameters);
+        this.parameters = this._validateParameters(userParameters);
+        this._initGlyphs([this.code39builder.getGlyphByChar.bind(this.code39builder)]);
     }
 
     var _p = Code39ExtendedBuilder.prototype = Object.create(Parent.prototype);
@@ -194,27 +198,15 @@ define([
     _p._glyphData = data.glyphs;
     _p.BarcodeGlyphType = Code39ExtendedGlyph;
 
-    _p.addComponents = function(glyphSet, fontBelow) {
-        var i, l, glyph, components
-          , getGlyphByChar = this.code39builder.getGlyphByChar.bind(this.code39builder)
-          ;
-        for(i=0,l=this.glyphs.length;i<l;i++) {
-            glyph = this.glyphs[i];
-            components = glyph.code39Encoding.split('').map(getGlyphByChar);
-            glyph.targetCharCodes
-                .forEach(this._makeComponent.bind(this, glyphSet, components
-                            , glyph.textBelowFlag ? fontBelow : undefined));
-        }
-    };
-
     _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
         // jshint unused:vars
         // Let Code39 do the work and draw all code-{} glyphs!
         this.code39builder.drawGlyphs(glyphSet);
         // TODO: override this?
         this.addComponents(glyphSet, fontBelow);
-        // No need for these, they are encoded in Code 39 Extended:
+        // No need for most of these, they are encoded in Code 39 Extended:
         //      addNotdef, drawEmptyMandatoryGlyphs
+        this.drawEmptyMandatoryGlyphs(glyphSet, new Set(['nbspace']));
     };
 
     return {
