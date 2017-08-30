@@ -231,7 +231,7 @@ define([
     _p._makeGlyphBelowComponent = function(glyphSet, fontBelow, charcode
                                                         , transformation) {
         var glyph = fontBelow.glyphForCodePoint(charcode)
-          , name = 'below-' + charcode2name(charcode)
+          , name = 'below.' + charcode2name(charcode)
             // only interested in the x movement to determine the new advanceWidth
           , advanceWidth = transformation.transformPoint([glyph.advanceWidth, 0])[0]
           , glifData = {
@@ -459,6 +459,10 @@ define([
         this.addNotdef(glyphSet, fontinfo);
         this.drawEmptyMandatoryGlyphs(glyphSet);
     };
+
+    _p.getFeatures = function(fontBelow) {
+        // pass; override if needed
+    }
 
     _p._defaultParameters = {
         // At the momemnt generic to all barcode fonts:

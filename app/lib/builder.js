@@ -24,7 +24,7 @@ define([
           , builder
           // default glyph set
           , glyphSet = ufoWriter.getGlyphSet(false)
-          , minFontinfo, k, info
+          , minFontinfo, k, info, features
           ;
         if (!(codetype in Builders))
             throw new Error('Code type "' + codetype + '" is unknown. '
@@ -57,6 +57,9 @@ define([
         builder.populateGlyphSet(glyphSet, fontBelow, info);
         glyphSet.writeContents(false);
         ufoWriter.writeInfo(false, info);
+        features = builder.getFeatures(fontBelow);
+        if(features)
+            ufoWriter.writeFeatures(false, features);
         // TODO now write the real metadata ...
     };
 });

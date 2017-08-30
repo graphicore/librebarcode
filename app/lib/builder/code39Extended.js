@@ -200,7 +200,7 @@ define([
 
     _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
         // jshint unused:vars
-        // Let Code39 do the work and draw all code-{} glyphs!
+        // Let Code39 do the work and draw all code.{} glyphs!
         this.code39builder.drawGlyphs(glyphSet);
         // TODO: override this?
         this.addComponents(glyphSet, fontBelow);
