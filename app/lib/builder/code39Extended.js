@@ -206,7 +206,7 @@ define([
         this.addComponents(glyphSet, fontBelow);
         // No need for most of these, they are encoded in Code 39 Extended:
         //      addNotdef, drawEmptyMandatoryGlyphs
-        this.drawEmptyMandatoryGlyphs(glyphSet, new Set(['nbspace']));
+        this.drawEmptyMandatoryGlyphs(glyphSet);
     };
 
     return {

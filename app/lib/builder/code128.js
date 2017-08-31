@@ -232,7 +232,8 @@ define([
         }
     ]);
 
-    _p.getFeatures = function(fontBelow) {
+
+    _p._getFeatures = function(fontBelow) {
         var textbelow
           , notextbelow
           , feature
@@ -261,16 +262,34 @@ define([
         // code.stoppattern glyph are substituted by their no-text below
         // versions. Because, directly before code.stoppattern is the
         // check-sum symbol, and we don't want this to be human readable
-        stoppattern = charcode2name('Î'.charCodeAt(0))
+        stoppattern = charcode2name('Î'.charCodeAt(0));
         feature = [
-          'languagesystem DFLT dflt;\n'
+            '@textbelow = [', textbelow.join(' '),'];\n'
+          , '@notextbelow = [', notextbelow.join(' '),'];\n'
+          , 'feature calt {\n'
+          , "    sub @textbelow' ",stoppattern,' by @notextbelow;\n'
+          , '} calt;\n'
+        ];
+
+        return feature.join('');
+    }
+
+    _p.getFeatures = function(fontBelow) {
+        var features = [
+                this._getFeatures(fontBelow)
+              , Parent.prototype.getFeatures.call(this, fontBelow)
+          ].filter(function(item){ return !!item; });
+
+        return features.join('\n');('Î'.charCodeAt(0));
+        feature = [
         , '@textbelow = [', textbelow.join(' '),'];\n'
         , '@notextbelow = [', notextbelow.join(' '),'];\n'
         , 'feature calt {\n'
         , "    sub @textbelow' ",stoppattern,' by @notextbelow;\n'
         , '} calt;\n'
         ];
-        return feature.join('');
+
+        return feature.join('')
     };
 
     return {

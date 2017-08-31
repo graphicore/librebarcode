@@ -179,7 +179,7 @@ define([
         var i, l, glyph, args;
         for(i=0,l=this._glyphData.length;i<l;i++) {
             glyph = Object.create(this.BarcodeGlyphType.prototype);
-            args = []
+            args = [];
             if(genericExtraArgs)
                 Array.prototype.push.apply(args, genericExtraArgs);
             Array.prototype.push.apply(args, this._glyphData[i]);
@@ -410,21 +410,23 @@ define([
             }
           , {
                 name: 'nbspace'
+              , noblock: true
               , prodName: 'uni00A0'
               , glifData: {
                     unicodes:[0x00A0]
-                    // sane width as space
+                    // same width as space
                   , width: this.getGlyphByChar(' ').width
                 }
             }
           ]
           , i, l
           ;
+
         function draw(){}
         for(i=0,l=glyphs.length;i<l;i++) {
             // If names is defined it must be a set, acting as a whitelist
             // for glyphs to be added.
-            if(names && !names.has(glyphs[i].name))
+            if(names && !glyphs[i].noblock && !names.has(glyphs[i].name))
                 continue;
             this._writeGlyph(glyphSet
                            , glyphs[i].prodName || glyphs[i].name
