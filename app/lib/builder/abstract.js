@@ -409,6 +409,13 @@ define([
                 }
             }
           , {
+                name: 'CR'
+              , glifData: {
+                    unicodes:[0x200B]
+                  , width: 0
+                }
+            }
+          , {
                 name: 'nbspace'
               , noblock: true
               , prodName: 'uni00A0'
@@ -463,8 +470,9 @@ define([
     };
 
     _p.getFeatures = function(fontBelow) {
+        // jshint unused:vars
         // pass; override if needed
-    }
+    };
 
     _p._defaultParameters = {
         // At the momemnt generic to all barcode fonts:
