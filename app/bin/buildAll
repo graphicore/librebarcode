@@ -29,9 +29,9 @@ LICENSE='This Font Software is licensed under the SIL Open Font '\
 'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
 LICENSE_URL='http://scripts.sil.org/OFL'
 COPYRIGHT="Copyright 2017 The $FAMILY_BASE_NAME Project Authors (lasse@graphicore.de)"
-VERSION="Version 1.002"
+VERSION="Version 1.003"
 VERSION_MAJOR=1
-VERSION_MINOR=1
+VERSION_MINOR=3
 
 # usWinAscent from 800 to 682 ???
 # OS/2 sTypoLineGap is not equal to 0
@@ -224,7 +224,7 @@ for TARGET in ${TARGETS[@]}; do
     fi
 
     $BUILD $CODE_TYPE $UFO_DIR --fontinfo "$FONTINFO" --parameters "$PARAMETERS" $FONTARG
-    fontmake -u $UFO_DIR --production-names --keep-overlaps --keep-direction -a -o ttf
+    fontmake -u $UFO_DIR --production-names --keep-overlaps --keep-direction -a"-I" -o ttf
 
 done
 
