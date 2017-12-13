@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # execute like this:
-#   $ rm -rf sources/* autohinted master_ttf fonts/*; # clean up, if needed.
 #   $ ./app/bin/buildAll
 
 
 cd `dirname $BASH_SOURCE`/../../;
 SOURCE_DIR=`pwd`/sources
 FONTS_DIR=`pwd`/fonts
+
+rm -rf $SOURCE_DIR $FONTS_DIR autohinted master_ttf
 
 mkdir -p $SOURCE_DIR
 mkdir -p $FONTS_DIR
