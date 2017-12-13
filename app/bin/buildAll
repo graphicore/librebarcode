@@ -11,7 +11,7 @@ FONTS_DIR=`pwd`/fonts
 mkdir -p $SOURCE_DIR
 mkdir -p $FONTS_DIR
 
-TEXT_BELOW_FONT=`pwd`/../fonts/ofl/inconsolata/Inconsolata-Regular.ttf
+TEXT_BELOW_FONT="./app/assets/Inconsolata-Regular.ttf"
 BUILD="./app/bin/build"
 
 FAMILY_BASE_NAME="Libre Barcode"
