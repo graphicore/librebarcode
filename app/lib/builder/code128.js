@@ -10,7 +10,7 @@ define([
     var data = {
         glyphs: [
             // the unicode chars are from:
-            //   www.idautomation.com/barcode-fonts/code.128/user-manual.html
+            //   http://www.idautomation.com/barcode-fonts/code.128/user-manual.html
             //   http://www.jtbarton.com/Barcodes/Code128.aspx
             // checksum value, pattern, canonical id/name (based on Code Set B)
             // (name of the glyph in the font?), [unicode chars], textbelow_flag_or_charcodes
