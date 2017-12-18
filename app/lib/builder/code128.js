@@ -10,7 +10,7 @@ define([
     var data = {
         glyphs: [
             // the unicode chars are from:
-            //   www.idautomation.com/barcode-fonts/code.128/user-manual.html
+            //   http://www.idautomation.com/barcode-fonts/code.128/user-manual.html
             //   http://www.jtbarton.com/Barcodes/Code128.aspx
             // checksum value, pattern, canonical id/name (based on Code Set B)
             // (name of the glyph in the font?), [unicode chars], textbelow_flag_or_charcodes
@@ -219,6 +219,13 @@ define([
     var _p = Code128Builder.prototype = Object.create(Parent.prototype);
     _p.constructor = Code128Builder;
 
+    var i, glyph, num;
+    for(i=0;i<=99;i++) {
+        glyph = data.glyphs[i];
+        num = i.toString().padStart(2, "0");
+        data.glyphs.push([null, glyph[1], "code.C" + num, [], num]);
+    }
+
     _p._glyphData = data.glyphs;
     _p.BarcodeGlyphType = Code128Glyph;
 
@@ -236,6 +243,8 @@ define([
     _p._getFeatures = function(fontBelow) {
         var textbelow
           , notextbelow
+          , start, stop
+          , digitspre, digitspost
           , feature
           , i, l, j, ll, glyph, charcode, stoppattern
           ;
@@ -245,9 +254,17 @@ define([
 
         textbelow = [];
         notextbelow = [];
+        digitspre = [];
+        digitspost = [];
         // similar to addComponents!
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
+
+            if(typeof(glyph.textBelowFlag) === "string")
+                digitspost.push(glyph.name);
+            if(i <= 99)
+                digitspre.push(charcode2name(glyph.targetCharCodes[0]));
+
             if(!glyph.textBelowFlag)
                 continue;
             for(j=0,ll=glyph.targetCharCodes.length;j<ll;j++) {
@@ -263,12 +280,33 @@ define([
         // versions. Because, directly before code.stoppattern is the
         // check-sum symbol, and we don't want this to be human readable
         stoppattern = charcode2name('Î'.charCodeAt(0));
+        start = ['Ç', 'Í'].map(function(c) {
+            return charcode2name(c.charCodeAt(0));
+        })
+        stop = ['È', 'É', 'Î'].map(function(c) {
+            return charcode2name(c.charCodeAt(0));
+        })
         feature = [
             '@textbelow = [', textbelow.join(' '),'];\n'
           , '@notextbelow = [', notextbelow.join(' '),'];\n'
           , 'feature calt {\n'
           , "    sub @textbelow' ",stoppattern,' by @notextbelow;\n'
           , '} calt;\n'
+          , "\n"
+          , "@digits.pre  = [", digitspre.join(" "), "];\n"
+          , "@digits.post = [", digitspost.join(" "), "];\n"
+          , "@start       = [", start.join(" "), "];\n"
+          , "@stop        = [", stop.join(" "), "];\n"
+          , "lookup digits.c {\n"
+          , "    sub @digits.pre by @digits.post;\n"
+          , "} digits.c;\n"
+          , "feature calt {\n"
+          , "    sub @start @digits.pre' lookup digits.c;\n"
+          , "} calt;\n"
+          , "feature calt {\n"
+          , "    ignore sub @digits.post' @stop';\n"
+          , "    sub @digits.post @digits.pre' lookup digits.c;\n"
+          , "} calt;\n"
         ];
 
         return feature.join('');

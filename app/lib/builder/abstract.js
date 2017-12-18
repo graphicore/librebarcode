@@ -289,7 +289,7 @@ define([
     };
 
     _p._addFontBelowComponent = function(pen, fontBelow, glyphSet, charcode
-                                                        , componentWidth) {
+                                               , componentWidth, xoffset) {
         var glyph, height, scale, transformation;
         // Using height to calculate the scale is good, because
         // it creates the same scaling for all of the font.
@@ -314,7 +314,7 @@ define([
                         // center using advance width, so the spacing
                         // of the giving font still has some influence
                         // which is rather good.
-                        (componentWidth - glyph.advanceWidth) / 2
+                        xoffset + (componentWidth - glyph.advanceWidth) / 2
                         // move down just the amount of the ascender
                         // that is still left.
                       , -fontBelow['OS/2'].typoAscender * scale
@@ -344,7 +344,7 @@ define([
                 if(!fontBelow || !fontBelow.hasGlyphForCodePoint(charcode))
                     return;
                 this._addFontBelowComponent(pen, fontBelow, glyphSet
-                                             , charcode, glifData.width);
+                                             , charcode, glifData.width, 0);
             }.bind(this, components)
           ;
 
@@ -442,11 +442,32 @@ define([
         }
     };
 
-    _p.drawGlyphs = function(glyphSet) {
+    _p.drawGlyphs = function(glyphSet, fontBelow) {
         var i, l, glyph, drawPointsFunc;
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
-            drawPointsFunc = glyph.drawPoints.bind(glyph);
+
+            if(typeof(glyph.textBelowFlag) === "string" && !fontBelow)
+                continue;
+
+            drawPointsFunc = function(components, pen) {
+                // jshint: validthis: true
+                glyph.drawPoints(pen);
+                if(fontBelow && typeof(glyph.textBelowFlag) === "string") {
+                    var i, l;
+                    for(i=0,l=glyph.textBelowFlag.length;i<l;i++) {
+                        var charcode = glyph.textBelowFlag.charCodeAt(i)
+                          , width = glyph.width / 2
+                          , offset = i * width
+                          ;
+                        if(fontBelow.hasGlyphForCodePoint(charcode)) {
+                            this._addFontBelowComponent(pen, fontBelow
+                                , glyphSet, charcode, width, offset);
+                        }
+                    }
+                }
+              }.bind(this, null)
+            ;
             this._writeGlyph(glyphSet, glyph.name, glyph.glifData, drawPointsFunc);
         }
     };
@@ -462,7 +483,7 @@ define([
     };
 
     _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
-        this.drawGlyphs(glyphSet);
+        this.drawGlyphs(glyphSet, fontBelow);
         // now create all the compound glyphs
         this.addComponents(glyphSet, fontBelow);
         this.addNotdef(glyphSet, fontinfo);

@@ -29,7 +29,7 @@
     "commander": "git://github.com/graphicore/commander.js.git#atem-integration",
     "fontkit": "^1.7.6",
     "helmsman": "^1.0.3",
-    "jsdom": "~3",
+    "jsdom": "~4",
     "libxmljs": "~0.18.0",
     "lie": "^3.0.2",
     "requirejs": "^2.2.0"

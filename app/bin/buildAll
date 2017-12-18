@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # execute like this:
-#   $ rm -rf sources/* autohinted master_ttf fonts/*; # clean up, if needed.
 #   $ ./app/bin/buildAll
 
 
@@ -8,11 +7,14 @@ cd `dirname $BASH_SOURCE`/../../;
 SOURCE_DIR=`pwd`/sources
 FONTS_DIR=`pwd`/fonts
 
+rm -rf $SOURCE_DIR $FONTS_DIR autohinted master_ttf
+
 mkdir -p $SOURCE_DIR
 mkdir -p $FONTS_DIR
 
-TEXT_BELOW_FONT=`pwd`/../fonts/ofl/inconsolata/Inconsolata-Regular.ttf
+TEXT_BELOW_FONT="./app/assets/Inconsolata-Regular.ttf"
 BUILD="./app/bin/build"
+ADD_DSIG="./app/bin/add-dsig.py"
 
 FAMILY_BASE_NAME="Libre Barcode"
 FILE_BASENAME="LibreBarcode"
@@ -234,4 +236,4 @@ rm -rf master_ttf autohinted
 ls fonts
 
 FILES=$(find fonts -type f -name "*.ttf")
-fontbakery fix-dsig --autofix $FILES;
+python $ADD_DSIG $FILES;

@@ -7,3 +7,7 @@
 *.vfbak
 node_modules
 bower_components
+/fonts
+/package-lock.json
+/sources
+/venv
