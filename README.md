@@ -6,14 +6,24 @@ Fonts to write barcodes:
 
 * Libre Barcode 39
 * Libre Barcode 39 Text
+* Libre Barcode Extended 39
+* Libre Barcode Extended 39 Text
+
+To use these wrap the text to encode into `*` asterisks e.g.: `*HELLO WORLD*`
+
+See the [Wikipedia Code 39 page](https://en.wikipedia.org/wiki/Code_39) for more info.
 
 ## Code 128
 
 * Libre Barcode 128
 * Libre Barcode 128 Text
 
-## How to install and build
+To use these you have to use an encoder like [this](https://graphicore.github.io/librebarcode)
+(see also [#14](https://github.com/graphicore/librebarcode/issues/14)).
 
+See the [Wikipedia Code 128 page](https://en.wikipedia.org/wiki/Code_128) for more info.
+
+## How to install and build
 
 You'll need `git`, `bash`, `python2.7`, `virtualenv`, `node`(=nodejs) with `npm`, `bower`.
 
@@ -46,4 +56,4 @@ path/to/librebarcode $ . venv/bin/activate
 ## Licensing
 
 The fonts are licensed under OFL.
-The barcode font generator scripts are GPL3+.
+The barcode font generator and code 128 encoder scripts are GPL3+.

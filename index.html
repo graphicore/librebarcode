@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>Libre Barcode — Code 128 Encoder</title>
+
+    <link href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,700|Libre+Barcode+128+Text" rel="stylesheet">
+    <script src="./app/lib/bower_components/requirejs/require.js"></script>
+    <script>
+    require(['app/lib/bower_components/Atem-RequireJS-Config/browserConfig']
+    , function(configure) {
+        var setup = {
+            baseUrl: './app/lib'
+          , bowerPrefix: 'bower_components'
+          , paths: {
+                'LibreBarcode': './'
+            }
+        };
+        configure(setup, require);
+
+        function main(encoder){
+            var codeContainer = document.body.getElementsByClassName('code128')[0]
+              , inputElement = document.body.getElementsByClassName('input')[0]
+              , outputElement = document.body.getElementsByClassName('output')[0]
+              ;
+
+            inputElement.addEventListener('input', function(){
+                var result = encoder.encode(inputElement.value);
+                codeContainer.textContent = result || '';
+                outputElement.value = result || '';
+            })
+            outputElement.addEventListener('click', outputElement.select);
+            inputElement.value = 'Hello World!';
+            inputElement.dispatchEvent(new Event('input'));
+        }
+
+        require([
+              'require/domReady'
+            , 'code128Encoder/encoder'
+        ], function(domReady, encoder) {
+            domReady(main.bind(null, encoder));
+        });
+    });
+    </script>
+
+    <style>
+    html {
+        font-family: 'Alegreya Sans', sans-serif;
+        font-size: 20px;
+        background: #DCDCDC;
+    }
+
+    body {
+        max-width: 35em;
+        margin: 0 auto;
+        background: white;
+        padding: 1.5em;
+        min-height: 100%;
+    }
+
+    .code128 {
+        font-family: 'Libre Barcode 128 Text', cursive;
+        font-size: 4em;
+        text-align: center;
+    }
+    .output {
+        display: block;
+        margin: .5em auto;
+        width: 90%;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>Libre Barcode — Code 128 Encoder</h1>
+    <p><label>Enter a text: <input type="text" name="to-encode" class="input" /></label></p>
+    <p>If it can be encoded with <a href="https://en.wikipedia.org/wiki/Code_128">Code&nbsp;128</a>
+        you will see a scannable Code 128 barcode, rendered with the
+        <strong>Libre Barcode 128 Text</strong> font.</p>
+
+    <div class="code128"></div>
+
+    <p>
+        <label> Copy the encoded text to use it with one of the
+        <a href="https://fonts.google.com/?query=Libre+Barcode+128">Libre&nbsp;Barcode&nbsp;128&nbsp;fonts</a>:<br />
+        <input type="text" readonly class="output" /></label>
+    </p>
+
+    <p>For questions or bug reports please use the
+        <a href="https://github.com/graphicore/librebarcode/issues">issue&nbsp;tracker</a>.</p>
+
+    <p>
+    The Libre Barcode Project and this Code 128 encoder are on <a href="https://github.com/graphicore/librebarcode">GitHub</a>.
+    </p>
+    <p>
+    The Libre Barcode fonts can be downloaded on the <a href="https://github.com/graphicore/librebarcode/releases">releases&nbsp;page</a><br />
+    or are available via <a href="https://fonts.google.com/?query=Libre+Barcode">Google&nbsp;Fonts</a>.
+    </p>
+  </body>
+</html>
