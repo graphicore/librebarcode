@@ -25,7 +25,7 @@ See the [Wikipedia Code 128 page](https://en.wikipedia.org/wiki/Code_128) for mo
 
 ## How to install and build
 
-You'll need `git`, `bash`, `python2.7`, `virtualenv`, `node`(=nodejs) with `npm`, `bower`.
+You'll need `git`, `bash`, `python3.6`, `virtualenv`, `node`(=nodejs) with `npm`, `bower` and `ttfautohint` (if not in your distribution I suggest: [ttfautohint-build](https://github.com/source-foundry/ttfautohint-build)).
 
 Are dependencies missing? Please, let me know.
 
@@ -36,7 +36,7 @@ path/to $ git clone git@github.com:graphicore/librebarcode.git
 path/to $ cd librebarcode
 
 # best start with an virtual environment
-path/to/librebarcode $ virtualenv venv
+path/to/librebarcode $ python -m venv venv
 path/to/librebarcode $ . venv/bin/activate
 
 # installs fontmake and fontbakery
