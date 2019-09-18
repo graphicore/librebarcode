@@ -25,7 +25,7 @@ See the [Wikipedia Code 128 page](https://en.wikipedia.org/wiki/Code_128) for mo
 
 ## How to install and build
 
-You'll need `git`, `bash`, `python3.6`, `virtualenv`, `node`(=nodejs) with `npm`, `bower` and `ttfautohint` (if not in your distribution I suggest: [ttfautohint-build](https://github.com/source-foundry/ttfautohint-build)).
+You'll need `git`, `bash`, `python3.6`, `node`(=nodejs) with `npm`, `bower` and `ttfautohint` (if not in your distribution I suggest: [ttfautohint-build](https://github.com/source-foundry/ttfautohint-build)).
 
 Are dependencies missing? Please, let me know.
 
