@@ -209,18 +209,26 @@ define([
       , function checkOrSetWide(params) {
             var ratio;
             if('wide' in params) {
-                // `wide` was set explicitly
+                // `wide` was set explicitly.
+                // If it's negative we don't set the params.wideToNarrowRatio
+                // because that's nothing we need to support anyways.
                 validation.validatePositiveNumber('wide', params.wide);
                 ratio = params.wide / params.narrow;
-                validation.validateMinMax('ratio wide/narrow', ratio, 2, 3);
                 params.wideToNarrowRatio = ratio;
+                // If `--force` is used, params.wideToNarrowRatio will
+                // already be set.
+                validation.validateMinMax('ratio wide/narrow', ratio, 2, 3);
             }
             else {
-                // set wide via ratio
+                // Set wide via ratio.
+                // If it's not a number, params.wide will be a NaN, hence
+                // we don't need to set it in that case anyways.
                 validation.validateNumber('wideToNarrowRatio', params.wideToNarrowRatio);
+                params.wide = params.narrow * params.wideToNarrowRatio;
+                // It is OK to break (raise) here if `--force` is set,
+                // because we run it after setting params.wide.
                 validation.validateMinMax('wideToNarrowRatio', params.wideToNarrowRatio
                                                                 , 2, 3);
-                params.wide = params.narrow * params.wideToNarrowRatio;
             }
         }
     ]);
