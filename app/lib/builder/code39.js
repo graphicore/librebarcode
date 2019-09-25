@@ -8,6 +8,7 @@ define([
   , abstract
 ){
     "use strict";
+    /* globals Set */
 
     // ISO/IEC 16388:2007
     // https://www.iso.org/standard/43897.html
@@ -104,12 +105,16 @@ define([
                   , wideStuff = new Set([' ', '▮'])
                   , narrow = parameters.narrow
                   , wide = parameters.wide
+                  , item = null
+                  , lastItem
                   ;
                 for(i=0,l=this.pattern.length;i<l;i++) {
-                    if( i > 0 && this.pattern[i-1] !== ' ')
+                    lastItem = item;
+                    item = this.pattern[i];
+                    if(i > 0 && item !== ' ' && lastItem !== ' ')
                         narrowParts += 1;
 
-                    if (wideStuff.has(this.pattern[i]))
+                    if (wideStuff.has(item))
                         wideParts += 1;
                     else
                         narrowParts += 1;
@@ -146,13 +151,16 @@ define([
           , bottom = parameters.bottom
           , top = parameters.top
           , widths = {'|': narrow, '▮':wide, ' ': wide}
-          , item, i, l, left, right
+          , item = null
+          , lastItem, i, l, left, right
           ;
 
         for(i=0, l=this.pattern.length;i<l;i++) {
-            if(i > 0 && this.pattern[i-1] !== ' ')
-                advance += narrow;
+            lastItem = item;
             item = this.pattern[i];
+            if(i > 0 && item !== ' ' && lastItem !== ' ')
+                advance += narrow;
+
             left = advance;
             right = advance = advance += widths[item];
             if(item === ' ')
