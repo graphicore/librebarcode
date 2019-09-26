@@ -442,32 +442,32 @@ define([
         }
     };
 
+    _p._drawPointsFunc = function(glyphSet, fontBelow, glyph, pen) {
+        glyph.drawPoints(pen);
+        if(fontBelow && typeof(glyph.textBelowFlag) === "string") {
+            var i, l;
+            for(i=0,l=glyph.textBelowFlag.length;i<l;i++) {
+                var charcode = glyph.textBelowFlag.charCodeAt(i)
+                  , width = glyph.width / 2
+                  , offset = i * width
+                  ;
+                if(fontBelow.hasGlyphForCodePoint(charcode)) {
+                    this._addFontBelowComponent(pen, fontBelow
+                        , glyphSet, charcode, width, offset);
+                }
+            }
+        }
+    };
+
     _p.drawGlyphs = function(glyphSet, fontBelow) {
         var i, l, glyph, drawPointsFunc;
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
-
             if(typeof(glyph.textBelowFlag) === "string" && !fontBelow)
                 continue;
 
-            drawPointsFunc = function(components, pen) {
-                // jshint: validthis: true
-                glyph.drawPoints(pen);
-                if(fontBelow && typeof(glyph.textBelowFlag) === "string") {
-                    var i, l;
-                    for(i=0,l=glyph.textBelowFlag.length;i<l;i++) {
-                        var charcode = glyph.textBelowFlag.charCodeAt(i)
-                          , width = glyph.width / 2
-                          , offset = i * width
-                          ;
-                        if(fontBelow.hasGlyphForCodePoint(charcode)) {
-                            this._addFontBelowComponent(pen, fontBelow
-                                , glyphSet, charcode, width, offset);
-                        }
-                    }
-                }
-              }.bind(this, null)
-            ;
+            drawPointsFunc = this._drawPointsFunc.bind(this
+                                            , glyphSet, fontBelow, glyph);
             this._writeGlyph(glyphSet, glyph.name, glyph.glifData, drawPointsFunc);
         }
     };
