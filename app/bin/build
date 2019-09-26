@@ -46,7 +46,8 @@ requirejs([
         var parameters = program.parameters || {}
           , fontinfo =  program.fontinfo || {}
           ;
-        parameters.force = program.force || parameters.force || false;
+        if(program.force || 'force' in parameters)
+            parameters.force = program.force || parameters.force;
         builder(io, codetype, ufodir, program.fontbelow, fontinfo, parameters);
     }
 
@@ -63,8 +64,8 @@ requirejs([
             params = JSON.parse(data);
         }
         catch(err) {
-            console.warn('Can\'t parse '+name+'. > ',data);
-            throw err
+            console.warn('Can\'t parse '+name+' as JSON. > ',data);
+            throw err;
         }
         if( params.toString() !== '[object Object]')
             throw new Error (name+' must be an object, but got: ' + params.toString());

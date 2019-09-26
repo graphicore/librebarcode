@@ -521,8 +521,8 @@ define([
         return validate.call(this, this._validators, this._defaultParameters, userParameters);
     };
 
-    _p.reportParameters = function(logger) {
-        var i, l, keys, key, value, isDefault;
+    _p.reportParameters = function(logger, userParameters) {
+        var i, l, keys, key, value, notes;
         keys = [];
         for(key in this.parameters)
             keys.push(key);
@@ -532,10 +532,16 @@ define([
         for(i=0,l=keys.length;i<l;i++) {
             key = keys[i];
             value = this.parameters[key];
-            isDefault = (key in this._defaultParameters
-                                && this._defaultParameters[key] === value);
+            notes = [];
+            if(key in this._defaultParameters
+                                && this._defaultParameters[key] === value)
+                notes.push('default');
+            if(userParameters && key in userParameters)
+                notes.push('explicit');
+
             logger.log('  ' + key + ':'
-                                , value + (isDefault ? '(default)' : ''));
+                                , value
+                                + (notes.length ? ' (' + notes.join(', ') + ')' : ''));
         }
     };
 

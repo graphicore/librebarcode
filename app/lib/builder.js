@@ -31,7 +31,7 @@ define([
                 + 'Use one of: ' + Object.keys(Builders).join(', ') + '.');
 
         builder = new Builders[codetype](parameters);
-        builder.reportParameters();
+        builder.reportParameters(null, parameters);
 
         // fontforge requires a fontinfo.plist that defines unitsPerEm
         // AbstractBarcodeBuilder requires unitsPerEm, ascender descender
