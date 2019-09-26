@@ -8,7 +8,6 @@ define([
   , abstract
 ){
     "use strict";
-    /* globals Set */
 
     // ISO/IEC 16388:2007
     // https://www.iso.org/standard/43897.html
@@ -96,30 +95,7 @@ define([
     Object.defineProperties(_p, {
         width: {
             get: function() {
-
-                var parameters = this._parameters
-                  , i, l
-                  // a glyph leaves a 1 narrow part gap to the next glyph
-                  , narrowParts = 1
-                  , wideParts = 0
-                  , wideStuff = new Set([' ', '▮'])
-                  , narrow = parameters.narrow
-                  , wide = parameters.wide
-                  , item = null
-                  , lastItem
-                  ;
-                for(i=0,l=this.pattern.length;i<l;i++) {
-                    lastItem = item;
-                    item = this.pattern[i];
-                    if(i > 0 && item !== ' ' && lastItem !== ' ')
-                        narrowParts += 1;
-
-                    if (wideStuff.has(item))
-                        wideParts += 1;
-                    else
-                        narrowParts += 1;
-                }
-                return wideParts * wide + narrowParts * narrow;
+                return this.drawPoints();
             }
           , enumerable: true
         }
@@ -143,37 +119,60 @@ define([
         }
     });
 
-    _p.drawPoints = function(pen) {
+    function _drawBar(pen, left, bottom, top, right) {
+        pen.beginPath();
+        // closed contours don't start with a move
+        pen.addPoint([left, bottom], 'line');
+        pen.addPoint([left, top], 'line');
+        pen.addPoint([right, top], 'line');
+        pen.addPoint([right, bottom], 'line');
+        pen.endPath();
+    }
+    /**
+     * This function draws the glyphs and doubles as glyph width
+     * calculation. It returns the glyph width.
+     *
+     * If the pen argument is not set or falsy, it is not used and only
+     * the width is calculated.
+     */
+    _p.drawPoints = function(pen/*optional*/) {
         var parameters = this._parameters
-          , advance=0
-          , narrow = parameters.narrow
-          , wide = parameters.wide
+          , advance = 0
+          , narrowWhite, narrowBlack
+          , wideWhite, wideBlack
+          , widths
           , bottom = parameters.bottom
           , top = parameters.top
-          , widths = {'|': narrow, '▮':wide, ' ': wide}
           , item = null
-          , lastItem, i, l, left, right
+          , nextItem, i, l, left, right
           ;
+        narrowWhite = narrowBlack = parameters.narrow;
+        wideWhite = wideBlack = parameters.wide;
+        widths = {'|': narrowBlack, '▮':wideBlack, ' ': wideWhite};
 
         for(i=0, l=this.pattern.length;i<l;i++) {
-            lastItem = item;
             item = this.pattern[i];
-            if(i > 0 && item !== ' ' && lastItem !== ' ')
-                advance += narrow;
+            // if there's no nextItem it's null
+            nextItem = this.pattern[i+1] || null;
 
             left = advance;
-            right = advance = advance += widths[item];
+            right = advance = left + widths[item];
             if(item === ' ')
+                // Wide white bar:
+                //    doesn't use the pen
+                //    never needs a following narrow white bar
                 continue;
-
-            pen.beginPath();
-            // closed contours don't start with a move
-            pen.addPoint([left, bottom], 'line');
-            pen.addPoint([left, top], 'line');
-            pen.addPoint([right, top], 'line');
-            pen.addPoint([right, bottom], 'line');
-            pen.endPath();
+            if(pen)
+                _drawBar(pen, left, bottom, top, right);
+            if(this.pattern[i+1] !== ' ')
+                // Add a narrow white bar between two consecutive black
+                // bars and at the end.
+                // end: this.pattern[i+1] === undefined
+                // not two consecutive black bars: this.pattern[i+1] === ' '
+                advance += narrowWhite;
         }
+        // this is the total glyph width
+        return advance;
     };
 
     return Code39Glyph;
