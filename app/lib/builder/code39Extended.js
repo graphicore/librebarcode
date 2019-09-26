@@ -189,7 +189,7 @@ define([
         Parent.call(this);
         // tight coupling here ...
         this.code39builder = new Code39Builder(userParameters);
-        this.parameters = this._validateParameters(userParameters);
+        this.parameters = this.code39builder._validateParameters(userParameters);
         this._initGlyphs([this.code39builder.getGlyphByChar.bind(this.code39builder)]);
     }
 
@@ -197,6 +197,7 @@ define([
     _p.constructor = Code39ExtendedBuilder;
     _p._glyphData = data.glyphs;
     _p.BarcodeGlyphType = Code39ExtendedGlyph;
+    _p._defaultParameters = Object.create(Code39Builder.prototype._defaultParameters);
 
     _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
         // jshint unused:vars
