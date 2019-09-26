@@ -138,18 +138,17 @@ define([
     _p.drawPoints = function(pen/*optional*/) {
         var parameters = this._parameters
           , advance = 0
-          , narrowWhite, narrowBlack
-          , wideWhite, wideBlack
-          , widths
+          , narrowWhite = parameters.narrowWhite
+          , widths = {
+                '|': parameters.narrowBlack
+              , '▮': parameters.wideBlack
+              , ' ': parameters.wideWhite
+            }
           , bottom = parameters.bottom
           , top = parameters.top
           , item = null
           , nextItem, i, l, left, right
           ;
-        narrowWhite = narrowBlack = parameters.narrow;
-        wideWhite = wideBlack = parameters.wide;
-        widths = {'|': narrowBlack, '▮':wideBlack, ' ': wideWhite};
-
         for(i=0, l=this.pattern.length;i<l;i++) {
             item = this.pattern[i];
             // if there's no nextItem it's null
@@ -199,6 +198,28 @@ define([
     // also help with low resolution media or scanners.
     // max 3 min 2
     _p._defaultParameters.wideToNarrowRatio = 3;
+    // wide = narrow * wideToNarrowRatio; OR explicitly set
+
+    // These are added here to enable fine control over the black and
+    // white bars width.
+    // The trigger for this feature was #19
+    // https://github.com/graphicore/librebarcode/issues/19
+    // For a special printer an adjustment for "ink swell" was needed,
+    // because the black stripes grew too big and filled in the narrow
+    // white stripes. For comprehensive adjustment the width units of
+    // each bar type narrow/wide * white/black can be changed individually.
+    _p._defaultParameters.blackAdjustment = 0;
+    // narrowBlackAdjustment = blackAdjustment; OR explicitly set
+    // wideBlackAdjustment = blackAdjustment; OR explicitly set
+
+    _p._defaultParameters.whiteAdjustment = 0;
+    // narrowWhiteAdjustment = whiteAdjustment; OR explicitly set
+    // wideWhiteAdjustment = whiteAdjustment; OR explicitly set
+
+    // wideBlack = wide + wideBlackAdjustment; OR explicitly set
+    // wideWhite = wide + wideWhiteAdjustment; OR explicitly set
+    // narrowBlack = narrow + narrowBlackAdjustment; OR explicitly set
+    // narrowWhite = narrow + narrowWhiteAdjustment; OR explicitly set
 
     // overrides abstract.BarcodeBuilder.prototype._makeGlyphBelowComponent
     _p._makeGlyphBelowComponent = function (glyphSet, fontBelow, charcode, transformation) {
@@ -209,6 +230,62 @@ define([
     };
 
     _p._validators = Parent.prototype._validators.slice();
+
+    function _capitalizeFirst(str) {
+        return str[0].toUpperCase() + str.slice(1);
+    }
+
+    function _checkOrSetGeneralAdustment(barType) {
+            // let barType = "white"
+            // e.g. whiteAdjustment
+        var barAdjustment = barType + 'Adjustment';
+        function _validatorFunc(params) {
+            validation.validateNumber(barAdjustment, params[barAdjustment]);
+        }
+        return _validatorFunc;
+    }
+
+    function _checkOrSetSpecificAdustment(width, barType) {
+            // let barType = "white", width = "narrow"
+            // e.g. whiteAdjustment
+        var barAdjustment = barType + 'Adjustment'
+            // e.g. narrowWhiteAdjustment
+          , widthBarAdjustment = width + _capitalizeFirst(barType) + 'Adjustment'
+          ;
+        function _validatorFunc(params) {
+            if(widthBarAdjustment in params)
+                validation.validateNumber(widthBarAdjustment, params[widthBarAdjustment]);
+            else
+                params[widthBarAdjustment] = params[barAdjustment];
+
+            validation.validatePositiveNumber(
+                      // e.g. "narrow + narrowWhiteAdjustment"
+                      width + ' + ' + widthBarAdjustment
+                      // e.g. params.narrow + params.narrowWhiteAdjustment
+                    , params[width] + params[widthBarAdjustment]);
+        }
+        return _validatorFunc;
+    }
+
+    function _checkOrSetBar(width, barType) {
+           // let barType = "white", width = "narrow"
+           // e.g. narrowWhite
+         var widthBar = width + _capitalizeFirst(barType)
+           // e.g. narrowWhiteAdjustment
+           , widthBarAdjustment = widthBar + 'Adjustment'
+           ;
+        function _validatorFunc(params) {
+            // narrowWhiteAdjustment
+            if(!(widthBar in params))
+                params[widthBar] = widthBarAdjustment in params
+                      ? params[width] + params[widthBarAdjustment]
+                      : params[width]
+                      ;
+            validation.validatePositiveNumber(widthBar, params[widthBar]);
+        }
+        return _validatorFunc;
+    }
+
     Array.prototype.push.apply(_p._validators, [
         function checkNarrow(params) {
             validation.validatePositiveNumber('narrow', params.narrow);
@@ -238,6 +315,26 @@ define([
                                                                 , 2, 3);
             }
         }
+        // blackAdjustment
+      , _checkOrSetGeneralAdustment('black')
+        // narrowBlackAdjustment
+      , _checkOrSetSpecificAdustment('narrow', 'black')
+        // wideBlackAdjustment
+      , _checkOrSetSpecificAdustment('wide', 'black')
+        // whiteAdjustment
+      , _checkOrSetGeneralAdustment('white')
+        // narrowWhiteAdjustment
+      , _checkOrSetSpecificAdustment('narrow', 'white')
+        // wideWhiteAdjustment
+      , _checkOrSetSpecificAdustment('wide', 'white')
+        // narrowBlack
+      , _checkOrSetBar('narrow', 'black')
+        // wideBlack
+      , _checkOrSetBar('wide', 'black')
+        // narrowWhite
+      , _checkOrSetBar('narrow', 'white')
+        // wideWhite
+      , _checkOrSetBar('wide', 'white')
     ]);
 
     return {
