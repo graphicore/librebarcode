@@ -1,3 +1,4 @@
+// jshint esversion:6
 define([
     'LibreBarcode/errors'
   , 'LibreBarcode/validation'
@@ -124,12 +125,14 @@ define([
 
     function AbstractBarcodeGlyph(name, targetChars, textBelowFlag) {
         this.name = name;
-        this.targetCharCodes = targetChars.map(
-                        function(char){ return typeof char !== 'number'
-                                            ? char.charCodeAt(0)
-                                            : char
-                                            ;
-                        });
+        // drawing can be skipped if this glyph is just using symbols
+        // created by other glyphs
+        this.drawsRawSymbol = true;
+        this.components = [this];
+        this.targetCharCodes = targetChars.map(char=>typeof char !== 'number'
+                                                    ? char.charCodeAt(0)
+                                                    : char
+                                               );
         this._parameters = null;
         this.textBelowFlag = textBelowFlag;
     }
@@ -143,6 +146,17 @@ define([
     _p.drawPoints = function(parameters, pen) {
         // jshint unused:vars
         throw new NotImplementedError('drawPoints');
+    };
+
+    _p.createComposites = function* (withTextBelow) {
+        // jshint unused:vars
+        for(let charcode of this.targetCharCodes) {
+            let name = charcode2name(charcode)
+              , unicodes = [charcode]
+              , textBelowChars = String.fromCharCode(charcode)
+              ;
+            yield [name, unicodes, textBelowChars];
+        }
     };
 
     return AbstractBarcodeGlyph;
@@ -175,33 +189,29 @@ define([
     var _p = AbstractBarcodeBuilder.prototype;
     _p.constructor = AbstractBarcodeBuilder;
     _p._glyphData = null;
-    _p._initGlyphs = function(genericExtraArgs) {
-        var i, l, glyph, args;
-        for(i=0,l=this._glyphData.length;i<l;i++) {
-            glyph = Object.create(this.BarcodeGlyphType.prototype);
-            args = [];
-            if(genericExtraArgs)
-                Array.prototype.push.apply(args, genericExtraArgs);
-            Array.prototype.push.apply(args, this._glyphData[i]);
-            this.BarcodeGlyphType.apply(glyph, args);
+    _p._initGlyphs = function(...injectedArgs) {
+        for(let args of this._glyphData) {
+            let glyph = new this.BarcodeGlyphType(...injectedArgs, ...args);
             glyph.setParameters(this.parameters);
             this.glyphs.push(glyph);
         }
     };
 
     _p.getGlyphByChar = function(char) {
-        var i, l, glyph, _char, registerCharcodes;
+        var _char;
 
+        // lazily create this._char2Glyph
         if(this._char2Glyph === null) {
-            this._char2Glyph = Object.create(null);
-            registerCharcodes = function (char2Glyph, glyph, charCode) {
-                char2Glyph[String.fromCharCode(charCode)] = glyph;
-            };
-            for(i=0,l=this.glyphs.length;i<l;i++) {
-                glyph = this.glyphs[i];
-                glyph.targetCharCodes.forEach(
-                    registerCharcodes.bind(null, this._char2Glyph, glyph));
-            }
+            this._char2Glyph = new Map();
+            for(let glyph of this.glyphs)
+                for (let charCode of glyph.targetCharCodes) {
+                    let char = String.fromCharCode(charCode);
+                    if (this._char2Glyph.has(char))
+                        throw new KeyError(`${glyph.name} defines a char `
+                            + `"${char}" that is already registered  by glyph `
+                            + `${this._char2Glyph.get(char).name}.`);
+                    this._char2Glyph.set(char, glyph);
+                }
         }
 
         _char = typeof char === 'number'
@@ -209,14 +219,14 @@ define([
                           : char
                           ;
 
-        if(!(_char in this._char2Glyph))
+        if(!this._char2Glyph.has(_char))
           throw new KeyError('Char "'+_char+'" not found in ' + this.constructor.name);
-        return this._char2Glyph[_char];
+        return this._char2Glyph.get(_char);
     };
 
     _p.BarcodeGlyphType = AbstractBarcodeGlyph;
 
-    _p._drawAddComponent = function (name, transformation, pen) {
+    _p._penAddComponent = function (pen, name, transformation) {
         pen.addComponent( name, transformation || [1, 0, 0, 1, 0, 0] );
     };
 
@@ -228,10 +238,9 @@ define([
 
     };
 
-    _p._makeGlyphBelowComponent = function(glyphSet, fontBelow, charcode
+    _p._drawGlyphFromFont = function(glyphSet, font, charcode, name
                                                         , transformation) {
-        var glyph = fontBelow.glyphForCodePoint(charcode)
-          , name = 'below.' + charcode2name(charcode)
+        var glyph = font.glyphForCodePoint(charcode)
             // only interested in the x movement to determine the new advanceWidth
           , advanceWidth = transformation.transformPoint([glyph.advanceWidth, 0])[0]
           , glifData = {
@@ -288,64 +297,74 @@ define([
         return {name: name, advanceWidth: advanceWidth};
     };
 
-    _p._addFontBelowComponent = function(pen, fontBelow, glyphSet, charcode
-                                               , componentWidth, xoffset) {
-        var glyph, height, scale, transformation;
-        // Using height to calculate the scale is good, because
-        // it creates the same scaling for all of the font.
-        // This results in the new height fitting into fontBelowHeight
-        // units after scaling.
-        height = fontBelow['OS/2'].typoAscender
-                            - fontBelow['OS/2'].typoDescender;
-        scale = this.parameters.fontBelowHeight / height;
-
-        // Make the skaling transformation and also changing
-        // the advance width earlier, directly in the original drawing
-        // (did use only the transformation of the component earlier),
-        // otherwise, very huge fonts will screw the calculations
-        // of average glyph width and such.
-        transformation = new Transform().scale(scale);
-        glyph = this._makeGlyphBelowComponent(glyphSet, fontBelow
-                                            , charcode, transformation);
-
-
-        transformation = new Transform()
-                .translate(
-                        // center using advance width, so the spacing
-                        // of the giving font still has some influence
-                        // which is rather good.
-                        xoffset + (componentWidth - glyph.advanceWidth) / 2
-                        // move down just the amount of the ascender
-                        // that is still left.
-                      , -fontBelow['OS/2'].typoAscender * scale
-                );
-
-        this._drawAddComponent(glyph.name, transformation, pen);
+    _p._drawFontBelowGlyph = function(pen, fontBelow, glyphSet, charcode) {
+        var glyph
+            // Using height to calculate the scale is good, because
+            // it creates the same scaling for all of the font.
+            // This results in the new height fitting into fontBelowHeight
+            // units after scaling.
+          , height = fontBelow['OS/2'].typoAscender
+                            - fontBelow['OS/2'].typoDescender
+          , scale = this.parameters.fontBelowHeight / height
+            // Make the skaling transformation and also changing
+            // the advance width earlier, directly in the original drawing
+            // (did use only the transformation of the component earlier),
+            // otherwise, very huge fonts will screw the calculations
+            // of average glyph width and such.
+          , transformation = new Transform().scale(scale)
+          , name = 'below.' + charcode2name(charcode)
+          ;
+        glyph = this._drawGlyphFromFont(glyphSet, fontBelow, charcode
+                                       , name, transformation);
+        return [glyph, scale];
     };
 
-    _p._makeComponent = function(glyphSet, fromGlyph, fontBelow, charcode) {
+    // This makes the actually used glyphs
+    _p._makeComposite = function(glyphSet, fromGlyph, fontBelow
+                                      , name, unicodes, textBelowChars) {
         // if more than one components are given they are drawn directly
         // next to each other.
-        var name = charcode2name(charcode)
-          , components = fromGlyph.components || [fromGlyph]
+        var components = fromGlyph.components
           , glifData = {
-                unicodes: [charcode]
+                unicodes: unicodes
               , width: fromGlyph.width
             }
-          , drawPointsFunc = function(components, pen) {
+          , drawPointsFunc = pen=>{
                 // jshint: validthis: true
-                var i, l, advance=0, component, transform;
-                for(i=0,l=components.length;i<l;i++) {
-                    component = components[i];
-                    transform = new Transform().translate(advance, 0);
-                    this._drawAddComponent(component.name, transform, pen);
+                var advance=0;
+                for(let component of components) {
+                    let transform = new Transform().translate(advance, 0);
+                    this._penAddComponent(pen, component.name, transform);
                     advance += component.width;
                 }
-                if(!fontBelow || !fontBelow.hasGlyphForCodePoint(charcode))
-                    return;
-                this._addFontBelowComponent(pen, fontBelow, glyphSet
-                                             , charcode, glifData.width, 0);
-            }.bind(this, components)
+
+                if(!fontBelow) return;
+
+                for(let i=0, l=textBelowChars.length;i<l;i++) {
+                    let charcode = textBelowChars.charCodeAt(i)
+                      , width = glifData.width / l
+                      , xOffset = i * width
+                      ;
+                    if(!fontBelow.hasGlyphForCodePoint(charcode)) {
+                        console.warn(`In glyph ${name}: skipping missing `
+                                    + `font-below glyph ${textBelowChars[i]}.`);
+                        continue;
+                    }
+                    let [belowGlyph, scale] = this._drawFontBelowGlyph(
+                                        pen, fontBelow, glyphSet, charcode)
+                      , transformation = new Transform()
+                            .translate(
+                                    // center using advance width, so the spacing
+                                    // of the giving font still has some influence
+                                    // which is rather good.
+                                    xOffset + (width - belowGlyph.advanceWidth) / 2
+                                    // move down just the amount of the ascender
+                                    // that is still left.
+                                , -fontBelow['OS/2'].typoAscender * scale
+                            );
+                    this._penAddComponent(pen, belowGlyph.name, transformation);
+                }
+            }
           ;
 
         this._writeGlyph(glyphSet, name, glifData, drawPointsFunc);
@@ -441,51 +460,29 @@ define([
                            , draw);
         }
     };
+    _p.drawRawSymbols = function(glyphSet) {
+        for(let glyph of this.glyphs) {
+            if(!glyph.drawsRawSymbol) continue;
+            this._writeGlyph(glyphSet, glyph.name, glyph.glifData
+                                     , glyph.drawPoints.bind(glyph));
+        }
+    };
 
-    _p._drawPointsFunc = function(glyphSet, fontBelow, glyph, pen) {
-        glyph.drawPoints(pen);
-        if(fontBelow && typeof(glyph.textBelowFlag) === "string") {
-            var i, l;
-            for(i=0,l=glyph.textBelowFlag.length;i<l;i++) {
-                var charcode = glyph.textBelowFlag.charCodeAt(i)
-                  , width = glyph.width / 2
-                  , offset = i * width
-                  ;
-                if(fontBelow.hasGlyphForCodePoint(charcode)) {
-                    this._addFontBelowComponent(pen, fontBelow
-                        , glyphSet, charcode, width, offset);
-                }
+    _p.addCompositeGlyphs = function(glyphSet, fontBelow) {
+        for(let glyph of this.glyphs) {
+            for(let [name, unicodes, textBelowChars] of glyph.createComposites(!!fontBelow)) {
+                this._makeComposite(glyphSet, glyph
+                            , glyph.textBelowFlag ? fontBelow : undefined
+                            , name, unicodes, textBelowChars);
             }
         }
     };
 
-    _p.drawGlyphs = function(glyphSet, fontBelow) {
-        var i, l, glyph, drawPointsFunc;
-        for(i=0,l=this.glyphs.length;i<l;i++) {
-            glyph = this.glyphs[i];
-            if(typeof(glyph.textBelowFlag) === "string" && !fontBelow)
-                continue;
-
-            drawPointsFunc = this._drawPointsFunc.bind(this
-                                            , glyphSet, fontBelow, glyph);
-            this._writeGlyph(glyphSet, glyph.name, glyph.glifData, drawPointsFunc);
-        }
-    };
-
-    _p.addComponents = function(glyphSet, fontBelow) {
-        var i, l, glyph;
-        for(i=0,l=this.glyphs.length;i<l;i++) {
-            glyph = this.glyphs[i];
-            glyph.targetCharCodes
-                .forEach(this._makeComponent.bind(this, glyphSet, glyph
-                            , glyph.textBelowFlag ? fontBelow : undefined));
-        }
-    };
-
+    // This is the central function
     _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
-        this.drawGlyphs(glyphSet, fontBelow);
-        // now create all the compound glyphs
-        this.addComponents(glyphSet, fontBelow);
+        this.drawRawSymbols(glyphSet);
+        // now create all the composite glyphs
+        this.addCompositeGlyphs(glyphSet, fontBelow);
         this.addNotdef(glyphSet, fontinfo);
         this.drawEmptyMandatoryGlyphs(glyphSet);
     };

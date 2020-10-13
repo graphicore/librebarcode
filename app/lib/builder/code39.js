@@ -8,7 +8,7 @@ define([
   , abstract
 ){
     "use strict";
-
+    var charcode2name = abstract.charcode2name;
     // ISO/IEC 16388:2007
     // https://www.iso.org/standard/43897.html
     // (price: CHF88) ... wikipedia will do to get startet on this.
@@ -33,7 +33,7 @@ define([
     var data = {
         glyphs: [
     // checksum value, pattern, canonical id/name (name of the glyph in the font?)
-    //                                , [unicode chars], text_below_boolean_flag OR charcode
+    //                                , [unicode chars], text_below_boolean_flag
             [   1, "▮| ||▮", "code.one", ["1"], true]
           , [   2, "|▮ ||▮", "code.two", ["2"], true]
           , [   3, "▮▮ |||", "code.three", ["3"], true]
@@ -221,12 +221,14 @@ define([
     // narrowBlack = narrow + narrowBlackAdjustment; OR explicitly set
     // narrowWhite = narrow + narrowWhiteAdjustment; OR explicitly set
 
-    // overrides abstract.BarcodeBuilder.prototype._makeGlyphBelowComponent
-    _p._makeGlyphBelowComponent = function (glyphSet, fontBelow, charcode, transformation) {
+    // overrides abstract.BarcodeBuilder.prototype._drawGlyphFromFont
+    _p._drawGlyphFromFont = function (glyphSet, fontBelow, charcode, name, transformation) {
       // In this version, we only have upper case symbols
-      var _charcode = String.fromCharCode(charcode).toUpperCase().charCodeAt(0);
-      return Parent.prototype._makeGlyphBelowComponent.call(this, glyphSet
-                                        , fontBelow, _charcode, transformation);
+      var _charcode = String.fromCharCode(charcode).toUpperCase().charCodeAt(0)
+        , _name = 'below.' + charcode2name(_charcode)
+        ;
+      return Parent.prototype._drawGlyphFromFont.call(this, glyphSet, fontBelow,
+                                            _charcode, _name, transformation);
     };
 
     _p._validators = Parent.prototype._validators.slice();
