@@ -1,3 +1,4 @@
+// jshint esversion:6
 define([
     'LibreBarcode/errors'
   , 'LibreBarcode/validation'
@@ -190,7 +191,7 @@ define([
         // tight coupling here ...
         this.code39builder = new Code39Builder(userParameters);
         this.parameters = this.code39builder._validateParameters(userParameters);
-        this._initGlyphs([this.code39builder.getGlyphByChar.bind(this.code39builder)]);
+        this._initGlyphs(char=>this.code39builder.getGlyphByChar(char));
     }
 
     var _p = Code39ExtendedBuilder.prototype = Object.create(Parent.prototype);
@@ -202,9 +203,8 @@ define([
     _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
         // jshint unused:vars
         // Let Code39 do the work and draw all code.{} glyphs!
-        this.code39builder.drawGlyphs(glyphSet);
-        // TODO: override this?
-        this.addComponents(glyphSet, fontBelow);
+        this.code39builder.drawRawSymbols(glyphSet);
+        this.addCompositeGlyphs(glyphSet, fontBelow);
         // No need for most of these, they are encoded in Code 39 Extended:
         //      addNotdef, drawEmptyMandatoryGlyphs
         this.drawEmptyMandatoryGlyphs(glyphSet);

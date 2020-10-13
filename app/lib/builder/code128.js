@@ -1,3 +1,4 @@
+// jshint esversion: 6
 define([
     'LibreBarcode/builder/abstract'
   , 'LibreBarcode/validation'
@@ -12,8 +13,13 @@ define([
             // the unicode chars are from:
             //   http://www.idautomation.com/barcode-fonts/code.128/user-manual.html
             //   http://www.jtbarton.com/Barcodes/Code128.aspx
-            // checksum value, pattern, canonical id/name (based on Code Set B)
-            // (name of the glyph in the font?), [unicode chars], textbelow_flag_or_charcodes
+            //   * checksum value,
+            //   * pattern or null if it doesn't draw a raw symbol,
+            //   * canonical id/name (based on Code Set B) (name of the glyph in the font?),
+            //   * [unicode chars],
+            //   * textbelow_flag
+            //   * (optional) textbelow_charcodes
+            //   * (optional)
             [   0, "11011001100", "code.space", [" ", "Â"], false]
           , [   1, "11001101100", "code.exclam", ["!"], true]
           , [   2, "11001100110", "code.quotedbl", ["\""], true]
@@ -136,12 +142,42 @@ define([
         ]
     };
 
+    (()=>{
+      for(let i=0;i<=99;i++) {
+
+          // data.glyphs.push([null, glyph[1], "code.C" + num, [], num]);
+          let glyph = data.glyphs[i]
+            , textBelowChars = i.toString().padStart(2, "0")
+            ;
+          // pattern =
+          data.glyphs.push([
+              glyph[0],
+              // These don't  define a pattern, and hence don't "draw" but
+              // then in "makeComponent" reference the pattern glyph to use...
+              null, // pattern = null => this doesn't draw a raw symbol
+              `code.C${textBelowChars}`, // name
+              [], // targetCharCodes: no unicode chars encode this glyph
+              true, // textBelowFlag
+              textBelowChars,
+              [glyph[3][0]] // symbolComponents
+          ]);
+      }
+    })();
+
     var Code128Glyph = (function(Parent) {
     // "use strict";
-    function Code128Glyph(value, pattern, name, targetCharCodes, textBelowFlag) {
-        Parent.call(this,  name, targetCharCodes, textBelowFlag);
+    function Code128Glyph(getGlyphByChar, value, pattern, name, targetCharCodes
+                      , textBelowFlag, textBelowChars, symbolComponents) {
+        Parent.call(this, name, targetCharCodes, textBelowFlag);
+
         this.value = value;
         this.pattern = pattern;
+        this.drawsRawSymbol = pattern !== null;
+        // special for code.C{ii}
+        this.textBelowChars = textBelowChars || null;
+        if(symbolComponents)
+            // overrides value set in AbstractBarcodeGlyph
+            this.components = symbolComponents.map(getGlyphByChar);
     }
 
     var _p = Code128Glyph.prototype = Object.create(Parent.prototype);
@@ -150,7 +186,11 @@ define([
     Object.defineProperties(_p, {
         width: {
             get: function() {
-                return this.pattern.length * this._parameters.unit;
+                if(this.pattern !== null)
+                    return this.pattern.length * this._parameters.unit;
+                else
+                    // this is a special case for the code.C{ii} glyphs
+                    return this.components.reduce((val, glyph)=>val+glyph.width, 0);
             }
           , enumerable: true
         }
@@ -175,6 +215,9 @@ define([
     });
 
     _p.drawPoints = function(pen) {
+        if(!this.drawsRawSymbol)
+          throw new Error(`The glyph ${this.name} is marked as not drawing, `
+                         +`yet it's drawPoints method is called.`);
         var parameters = this._parameters
           , unit=parameters.unit
           , bottom = parameters.bottom
@@ -202,6 +245,29 @@ define([
         }
     };
 
+
+    _p.createComposites = function* (withTextBelow) {
+            // There's are "code.CodeA" and "code.CodeC" that are not part
+            // of the special code.C set but control symbols.
+        var isCodeCGlyph = !this.name.startsWith('code.Code')
+                                && this.name !== 'code.C'
+                                && this.name.startsWith('code.C');
+        if(!isCodeCGlyph /* a "normal" glyph */) {
+            yield* Parent.prototype.createComposites.call(this, withTextBelow);
+            return;
+        }
+        // isCodeCGlyph
+        if(!withTextBelow)
+            return;
+        // This is special for the code128 code.C set and
+        // we don't need these in the no-font-below version!
+        let name = this.name
+          , unicodes = []
+          , textBelowChars = this.textBelowChars
+          ;
+        yield [name, unicodes, textBelowChars];
+    };
+
     return Code128Glyph;
     })(abstract.BarcodeGlyph);
 
@@ -213,18 +279,11 @@ define([
         Parent.call(this);
         // validation
         this.parameters = this._validateParameters(userParameters);
-        this._initGlyphs();
+        this._initGlyphs(char=>this.getGlyphByChar(char));
     }
 
     var _p = Code128Builder.prototype = Object.create(Parent.prototype);
     _p.constructor = Code128Builder;
-
-    var i, glyph, num;
-    for(i=0;i<=99;i++) {
-        glyph = data.glyphs[i];
-        num = i.toString().padStart(2, "0");
-        data.glyphs.push([null, glyph[1], "code.C" + num, [], num]);
-    }
 
     _p._glyphData = data.glyphs;
     _p.BarcodeGlyphType = Code128Glyph;
