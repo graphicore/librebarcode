@@ -298,10 +298,10 @@ define([
         }
     ]);
 
-
     _p._getFeatures = function(fontBelow) {
         var textbelow
           , notextbelow
+          , notextbelow_c
           , start, stop
           , digitspre, digitspost
           , feature
@@ -313,14 +313,17 @@ define([
 
         textbelow = [];
         notextbelow = [];
+        notextbelow_c = [];
         digitspre = [];
         digitspost = [];
-        // similar to addComponents!
+        // similar to addCompositeGlyphs!
         for(i=0,l=this.glyphs.length;i<l;i++) {
             glyph = this.glyphs[i];
 
-            if(typeof(glyph.textBelowFlag) === "string")
+            if(glyph.textBelowChars !== null) { // special code.C{ii} glyphs
                 digitspost.push(glyph.name);
+                notextbelow_c.push(glyph.components[0].name);
+            }
             if(i <= 99)
                 digitspre.push(charcode2name(glyph.targetCharCodes[0]));
 
@@ -334,6 +337,9 @@ define([
                 notextbelow.push(glyph.name);
             }
         }
+
+
+
         // the glyphs with text below that are directly followed by the
         // code.stoppattern glyph are substituted by their no-text below
         // versions. Because, directly before code.stoppattern is the
@@ -341,21 +347,24 @@ define([
         stoppattern = charcode2name('Î'.charCodeAt(0));
         start = ['Ç', 'Í'].map(function(c) {
             return charcode2name(c.charCodeAt(0));
-        })
+        });
         stop = ['È', 'É', 'Î'].map(function(c) {
             return charcode2name(c.charCodeAt(0));
-        })
+        });
         feature = [
             '@textbelow = [', textbelow.join(' '),'];\n'
           , '@notextbelow = [', notextbelow.join(' '),'];\n'
-          , 'feature calt {\n'
-          , "    sub @textbelow' ",stoppattern,' by @notextbelow;\n'
-          , '} calt;\n'
-          , "\n"
+          , '@notextbelow.c = [', notextbelow_c.join(' '),'];\n'
           , "@digits.pre  = [", digitspre.join(" "), "];\n"
           , "@digits.post = [", digitspost.join(" "), "];\n"
           , "@start       = [", start.join(" "), "];\n"
           , "@stop        = [", stop.join(" "), "];\n"
+          // remove text-below in check sum symbol
+          , 'feature calt {\n'
+          , "    sub @textbelow' ",stoppattern,' by @notextbelow;\n'
+          , '} calt;\n'
+
+          , "\n"
           , "lookup digits.c {\n"
           , "    sub @digits.pre by @digits.post;\n"
           , "} digits.c;\n"
@@ -366,10 +375,14 @@ define([
           , "    ignore sub @digits.post' @stop';\n"
           , "    sub @digits.post @digits.pre' lookup digits.c;\n"
           , "} calt;\n"
+          // after the code c substitutions: remove text-below in check sum symbol
+          , 'feature calt {\n'
+          , "    sub @digits.post' ",stoppattern,' by @notextbelow.c;\n'
+          , '} calt;\n'
         ];
 
         return feature.join('');
-    }
+    };
 
     _p.getFeatures = function(fontBelow) {
         var features = [
@@ -377,16 +390,7 @@ define([
               , Parent.prototype.getFeatures.call(this, fontBelow)
           ].filter(function(item){ return !!item; });
 
-        return features.join('\n');('Î'.charCodeAt(0));
-        feature = [
-        , '@textbelow = [', textbelow.join(' '),'];\n'
-        , '@notextbelow = [', notextbelow.join(' '),'];\n'
-        , 'feature calt {\n'
-        , "    sub @textbelow' ",stoppattern,' by @notextbelow;\n'
-        , '} calt;\n'
-        ];
-
-        return feature.join('')
+        return features.join('\n');
     };
 
     return {
