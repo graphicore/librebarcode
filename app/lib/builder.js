@@ -3,11 +3,13 @@ define([
   , 'LibreBarcode/builder/code39'
   , 'LibreBarcode/builder/code39Extended'
   , 'LibreBarcode/builder/code128'
+  , 'LibreBarcode/builder/ean13'
 ], function(
     UFOWriter
   , code39
   , code39Extended
   , code128
+  , ean13
 ){
     "use strict";
 
@@ -17,6 +19,7 @@ define([
         Code128: code128.Builder
       , Code39: code39.Builder
       , Code39Extended:  code39Extended.Builder
+      , EAN13: ean13.Builder
     };
 
     return function(io, codetype, ufodir, fontBelow, fontinfo, parameters) {
