@@ -166,9 +166,9 @@ define([
 
     var Code128Glyph = (function(Parent) {
     // "use strict";
-    function Code128Glyph(getGlyphByChar, value, pattern, name, targetCharCodes
+    function Code128Glyph(parameters, getGlyphByChar, value, pattern, name, targetChars
                       , textBelowFlag, textBelowChars, symbolComponents) {
-        Parent.call(this, name, targetCharCodes, textBelowFlag);
+        Parent.call(this, parameters, name, targetChars, textBelowFlag);
 
         this.value = value;
         this.pattern = pattern;
@@ -245,7 +245,6 @@ define([
         }
     };
 
-
     _p.createComposites = function* (withTextBelow) {
             // There's are "code.CodeA" and "code.CodeC" that are not part
             // of the special code.C set but control symbols.
@@ -275,8 +274,8 @@ define([
       , charcode2name = abstract.charcode2name
       ;
 
-    function Code128Builder(userParameters) {
-        Parent.call(this);
+    function Code128Builder(userParameters, fontInfo, fontBelow) {
+        Parent.call(this, fontInfo, fontBelow);
         // validation
         this.parameters = this._validateParameters(userParameters);
         this._initGlyphs(char=>this.getGlyphByChar(char));
@@ -338,8 +337,6 @@ define([
             }
         }
 
-
-
         // the glyphs with text below that are directly followed by the
         // code.stoppattern glyph are substituted by their no-text below
         // versions. Because, directly before code.stoppattern is the
@@ -384,10 +381,10 @@ define([
         return feature.join('');
     };
 
-    _p.getFeatures = function(fontBelow) {
+    _p.getFeatures = function() {
         var features = [
-                this._getFeatures(fontBelow)
-              , Parent.prototype.getFeatures.call(this, fontBelow)
+                this._getFeatures(this.fontBelow)
+              , Parent.prototype.getFeatures.call(this)
           ].filter(function(item){ return !!item; });
 
         return features.join('\n');

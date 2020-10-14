@@ -166,8 +166,8 @@ define([
       ;
 
     var Code39ExtendedGlyph = (function(Parent) {
-    function Code39ExtendedGlyph(getGlyphByChar, charcode, characer, code39Encoding, textBelowFlag) {
-        Parent.call(this,  charcode2name(charcode), [charcode], textBelowFlag);
+    function Code39ExtendedGlyph(parameters, getGlyphByChar, charcode, characer, code39Encoding, textBelowFlag) {
+        Parent.call(this,  parameters, charcode2name(charcode), [charcode], textBelowFlag);
         this.characer = characer; // unused, but nice as info in glyphs.data
         this.code39Encoding = code39Encoding;
 
@@ -186,10 +186,10 @@ define([
 
     var Parent = abstract.BarcodeBuilder;
 
-    function Code39ExtendedBuilder(userParameters) {
-        Parent.call(this);
+    function Code39ExtendedBuilder(userParameters, fontInfo, fontBelow) {
+        Parent.call(this, fontInfo, fontBelow);
         // tight coupling here ...
-        this.code39builder = new Code39Builder(userParameters);
+        this.code39builder = new Code39Builder(userParameters, fontInfo, fontBelow);
         this.parameters = this.code39builder._validateParameters(userParameters);
         this._initGlyphs(char=>this.code39builder.getGlyphByChar(char));
     }
@@ -200,11 +200,11 @@ define([
     _p.BarcodeGlyphType = Code39ExtendedGlyph;
     _p._defaultParameters = Object.create(Code39Builder.prototype._defaultParameters);
 
-    _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
+    _p.populateGlyphSet = function(glyphSet) {
         // jshint unused:vars
         // Let Code39 do the work and draw all code.{} glyphs!
         this.code39builder.drawRawSymbols(glyphSet);
-        this.addCompositeGlyphs(glyphSet, fontBelow);
+        this.addCompositeGlyphs(glyphSet, this.fontBelow);
         // No need for most of these, they are encoded in Code 39 Extended:
         //      addNotdef, drawEmptyMandatoryGlyphs
         this.drawEmptyMandatoryGlyphs(glyphSet);
