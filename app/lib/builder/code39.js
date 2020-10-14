@@ -83,8 +83,8 @@ define([
 
     var Code39Glyph = (function(Parent) {
     // "use strict";
-    function Code39Glyph(value, pattern, name, targetCharCodes, textBelowFlag) {
-        Parent.call(this,  name, targetCharCodes, textBelowFlag);
+    function Code39Glyph(parameters, value, pattern, name, targetCharCodes, textBelowFlag) {
+        Parent.call(this,  parameters, name, targetCharCodes, textBelowFlag);
         this.value = value;
         this.pattern = pattern;
     }
@@ -179,8 +179,8 @@ define([
 
     var Parent = abstract.BarcodeBuilder;
 
-    function Code39Builder(userParameters) {
-        Parent.call(this);
+    function Code39Builder(userParameters, fontInfo, fontBelow) {
+        Parent.call(this, fontInfo, fontBelow);
         // validation
         this.parameters = this._validateParameters(userParameters);
         this._initGlyphs();

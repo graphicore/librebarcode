@@ -30,9 +30,6 @@ define([
             throw new Error('Code type "' + codetype + '" is unknown. '
                 + 'Use one of: ' + Object.keys(Builders).join(', ') + '.');
 
-        builder = new Builders[codetype](parameters);
-        builder.reportParameters(null, parameters);
-
         // fontforge requires a fontinfo.plist that defines unitsPerEm
         // AbstractBarcodeBuilder requires unitsPerEm, ascender descender
         // to draw the .notdef glyph.
@@ -54,10 +51,13 @@ define([
             //    capHeight
             // but you'll need more info for a good font!
 
-        builder.populateGlyphSet(glyphSet, fontBelow, info);
+        builder = new Builders[codetype](parameters, info, fontBelow);
+        builder.reportParameters(null, parameters);
+
+        builder.populateGlyphSet(glyphSet);
         glyphSet.writeContents(false);
-        ufoWriter.writeInfo(false, info);
-        features = builder.getFeatures(fontBelow);
+        ufoWriter.writeInfo(false, builder.fontInfo);
+        features = builder.getFeatures();
         if(features)
             ufoWriter.writeFeatures(false, features);
         // TODO now write the real metadata ...

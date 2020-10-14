@@ -119,11 +119,67 @@ define([
 
     })(AbstractPen, errors);
 
+    function drawFromFont(font, charcode, transformation = null) {
+        var glyph = font.glyphForCodePoint(charcode)
+          , commands = glyph.path.commands
+          , advanceWidth = transformation !== null
+                // only interested in the x movement to determine the new advanceWidth
+                ? transformation.transformPoint([glyph.advanceWidth, 0])[0]
+                : glyph.advanceWidth
+          ;
+        return [advanceWidth, function drawPoints(pen) {
+            let tpen = transformation !== null
+                ? new TransformPointPen(pen, transformation)
+                : pen
+             , s2pPen = new SegmentToPointPen(tpen)
+             ;
+            // segments to point pen
+            for(let i=0,l=commands.length;i<l;i++) {
+                let command = commands[i].command
+                  , args = commands[i].args
+                  , points
+                  ;
+                switch (command) {
+                  case 'closePath':
+                    s2pPen.closePath();
+                    break;
+                  case 'moveTo':
+                    s2pPen.moveTo(args.slice(0,2));
+                    break;
+                  case 'lineTo':
+                    s2pPen.lineTo(args.slice(0,2));
+                    break;
+                  case 'quadraticCurveTo':
+                    points = [];
+                    args = args.slice();
+                    while(args.length) {
+                        points.push(args.slice(0,2));
+                        args = args.slice(2);
+                    }
+                    s2pPen.qCurveTo.apply(s2pPen, points);
+                    break;
+                  case 'bezierCurveTo':
+                    points  = [];
+                    args = args.slice();
+                    while(args.length) {
+                        points.push(args.slice(0,2));
+                        args = args.slice(2);
+                    }
+                    s2pPen.curveTo.apply(s2pPen, points);
+                    break;
+                  default:
+                    throw new ValueError('Curve command "' +command+ '" unknown.');
+                }
+            }
+        }];
+    }
+
     var AbstractBarcodeGlyph = (function(errors) {
 
     var NotImplementedError = errors.NotImplemented;
 
-    function AbstractBarcodeGlyph(name, targetChars, textBelowFlag) {
+    function AbstractBarcodeGlyph(parameters, name, targetChars, textBelowFlag) {
+        this._parameters = parameters;
         this.name = name;
         // drawing can be skipped if this glyph is just using symbols
         // created by other glyphs
@@ -133,17 +189,12 @@ define([
                                                     ? char.charCodeAt(0)
                                                     : char
                                                );
-        this._parameters = null;
         this.textBelowFlag = textBelowFlag;
     }
 
     var _p = AbstractBarcodeGlyph.prototype;
 
-    _p.setParameters = function(params) {
-        this._parameters = params;
-    };
-
-    _p.drawPoints = function(parameters, pen) {
+    _p.drawPoints = function(pen) {
         // jshint unused:vars
         throw new NotImplementedError('drawPoints');
     };
@@ -179,9 +230,10 @@ define([
       , ValueError = errors.Value
       ;
 
-    function AbstractBarcodeBuilder() {
+    function AbstractBarcodeBuilder(fontInfo, fontBelow) {
+        this.fontInfo = fontInfo;
+        this.fontBelow = fontBelow;
         this.glyphs = [];
-        // the first argument passed to the glyphs drawPoints method
         this.parameters = null;
         this._char2Glyph = null;
     }
@@ -191,8 +243,7 @@ define([
     _p._glyphData = null;
     _p._initGlyphs = function(...injectedArgs) {
         for(let args of this._glyphData) {
-            let glyph = new this.BarcodeGlyphType(...injectedArgs, ...args);
-            glyph.setParameters(this.parameters);
+            let glyph = new this.BarcodeGlyphType(this.parameters, ...injectedArgs, ...args);
             this.glyphs.push(glyph);
         }
     };
@@ -227,7 +278,7 @@ define([
     _p.BarcodeGlyphType = AbstractBarcodeGlyph;
 
     _p._penAddComponent = function (pen, name, transformation) {
-        pen.addComponent( name, transformation || [1, 0, 0, 1, 0, 0] );
+        pen.addComponent( name, transformation || new Transform()/* === identity*/);
     };
 
     _p._writeGlyph = function(glyphSet, name, glifData, drawPointsFunc) {
@@ -240,59 +291,12 @@ define([
 
     _p._drawGlyphFromFont = function(glyphSet, font, charcode, name
                                                         , transformation) {
-        var glyph = font.glyphForCodePoint(charcode)
-            // only interested in the x movement to determine the new advanceWidth
-          , advanceWidth = transformation.transformPoint([glyph.advanceWidth, 0])[0]
+        var [advanceWidth, drawPointsFunc] = drawFromFont(font, charcode, transformation)
           , glifData = {
                 unicodes: []
               , width: advanceWidth
             }
           ;
-        function drawPointsFunc(pen) {
-            var commands = glyph.path.commands
-              , tpen = new TransformPointPen(pen, transformation)
-              , s2pPen = new SegmentToPointPen(tpen)
-              , i, l, command, args, points
-              ;
-
-            // segments to point pen
-            for(i=0,l=commands.length;i<l;i++) {
-                command = commands[i].command;
-                args = commands[i].args;
-                switch (command) {
-                  case 'closePath':
-                    s2pPen.closePath();
-                    break;
-                  case 'moveTo':
-                    s2pPen.moveTo(args.slice(0,2));
-                    break;
-                  case 'lineTo':
-                    s2pPen.lineTo(args.slice(0,2));
-                    break;
-                  case 'quadraticCurveTo':
-                    points  = [];
-                    args = args.slice();
-                    while(args.length) {
-                        points.push(args.slice(0,2));
-                        args = args.slice(2);
-                    }
-                    s2pPen.qCurveTo.apply(s2pPen, points);
-                    break;
-                  case 'bezierCurveTo':
-                    points  = [];
-                    args = args.slice();
-                    while(args.length) {
-                        points.push(args.slice(0,2));
-                        args = args.slice(2);
-                    }
-                    s2pPen.curveTo.apply(s2pPen, points);
-                    break;
-                  default:
-                    throw new ValueError('Curve command "' +command+ '" unknown.');
-                }
-            }
-        }
-
         this._writeGlyph(glyphSet, name, glifData, drawPointsFunc);
         return {name: name, advanceWidth: advanceWidth};
     };
@@ -441,6 +445,8 @@ define([
               , glifData: {
                     unicodes:[0x00A0]
                     // same width as space
+                    // TODO: there should be a "this.getSpaceWidth" method
+                    // that can be overriden ...
                   , width: this.getGlyphByChar(' ').width
                 }
             }
@@ -479,16 +485,15 @@ define([
     };
 
     // This is the central function
-    _p.populateGlyphSet = function(glyphSet, fontBelow, fontinfo) {
-        this.drawRawSymbols(glyphSet);
+    _p.populateGlyphSet = function(glyphSet) {
+        this.drawRawSymbols(glyphSet, this.fontBelow);
         // now create all the composite glyphs
-        this.addCompositeGlyphs(glyphSet, fontBelow);
-        this.addNotdef(glyphSet, fontinfo);
+        this.addCompositeGlyphs(glyphSet, this.fontBelow);
+        this.addNotdef(glyphSet, this.fontInfo);
         this.drawEmptyMandatoryGlyphs(glyphSet);
     };
 
-    _p.getFeatures = function(fontBelow) {
-        // jshint unused:vars
+    _p.getFeatures = function() {
         // pass; override if needed
     };
 
@@ -546,5 +551,7 @@ define([
         BarcodeBuilder: AbstractBarcodeBuilder
       , BarcodeGlyph: AbstractBarcodeGlyph
       , charcode2name: charcode2name
+      , drawFromFont: drawFromFont
+      , Transform: Transform
     };
 });
