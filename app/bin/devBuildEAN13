@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# execute like this:
+#   $ ./app/bin/buildAll
+
+
+cd `dirname $BASH_SOURCE`/../../;
+SOURCE_DIR=`pwd`/sources
+FONTS_DIR=`pwd`/fonts
+
+rm -rf $SOURCE_DIR $FONTS_DIR autohinted master_ttf
+
+mkdir -p $SOURCE_DIR
+mkdir -p $FONTS_DIR
+
+TEXT_BELOW_FONT="./app/assets/Inconsolata-Regular.ttf"
+BUILD="./app/bin/build"
+ADD_DSIG="./app/bin/add-dsig.py"
+
+FAMILY_BASE_NAME="Libre Barcode"
+FILE_BASENAME="LibreBarcode"
+
+UNITS_PER_EM=1000
+ASCENDER=1200
+DESCENDER=-400
+STYLE_NAME="Regular"
+STYLEMAP_STYLE_NAME="regular"
+X_HEIGHT=400
+CAP_HEIGHT=590
+VENDOR_ID="GRCR"
+LICENSE='This Font Software is licensed under the SIL Open Font '\
+'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
+LICENSE_URL='http://scripts.sil.org/OFL'
+COPYRIGHT="Copyright 2017 The $FAMILY_BASE_NAME Project Authors (lasse@graphicore.de)"
+VERSION="Version 0.001"
+VERSION_MAJOR=0
+VERSION_MINOR=1
+
+FONTINFO_EAN13TEXT=$(cat <<EOT
+{
+    "familyName": "${FAMILY_BASE_NAME} EAN 13 Text"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} EAN 13 Text"
+  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
+  , "styleName": "${STYLE_NAME}"
+  , "unitsPerEm": ${UNITS_PER_EM}
+  , "ascender": ${ASCENDER}
+  , "descender": ${DESCENDER}
+  , "xHeight": ${X_HEIGHT}
+  , "capHeight": ${CAP_HEIGHT}
+  , "openTypeOS2Type": []
+  , "openTypeOS2VendorID": "${VENDOR_ID}"
+  , "openTypeNameLicense": "${LICENSE}"
+  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+  , "openTypeNameVersion": "${VERSION}"
+  , "copyright": "${COPYRIGHT}"
+  , "versionMajor": ${VERSION_MAJOR}
+  , "versionMinor": ${VERSION_MINOR}
+  , "openTypeOS2TypoLineGap": 0
+}
+EOT
+)
+
+PARAMETERS_EAN13TEXT=$(cat <<EOT
+{
+    "top": 890
+}
+EOT
+)
+
+TARGETS=(EAN13TEXT)
+              # UFO_BASE CODE_TYPE USEFONT
+TARGET_EAN13TEXT=("EAN13Text" "EAN13" 1)
+
+for TARGET in ${TARGETS[@]}; do
+    _FONTINFO_DATA_REFERENCE="FONTINFO_$TARGET"[@]
+    FONTINFO=( "${!_FONTINFO_DATA_REFERENCE}" )
+
+    _PARAMETERS_DATA_REFERENCE="PARAMETERS_$TARGET"[@]
+    PARAMETERS=( "${!_PARAMETERS_DATA_REFERENCE}")
+    if [ "${#PARAMETERS[@]}" -eq 0 ];then
+        PARAMETERS='{}'
+    fi
+
+    _TARGET_DATA_REFERENCE="TARGET_$TARGET"[@]
+    TARGET_DATA=( "${!_TARGET_DATA_REFERENCE}" ) # copies the list
+    UFO_BASE=${TARGET_DATA[0]}
+    UFO_DIR="$SOURCE_DIR/$FILE_BASENAME${UFO_BASE}-Regular.ufo"
+    CODE_TYPE=${TARGET_DATA[1]}
+    USEFONT=${TARGET_DATA[2]}
+    FONTARG=""
+    if [ $USEFONT -eq 1 ];then
+        FONTARG=" --fontbelow $TEXT_BELOW_FONT "
+    fi
+
+    $BUILD $CODE_TYPE $UFO_DIR --force --fontinfo "$FONTINFO" --parameters "$PARAMETERS" $FONTARG
+    fontmake -u $UFO_DIR --keep-overlaps --keep-direction -a"--symbol" -o ttf
+
+done
+
+cp autohinted/master_ttf/* fonts && \
+cp OFL.txt fonts && \
+rm -rf master_ttf autohinted
+ls fonts
+
+FILES=$(find fonts -type f -name "*.ttf")
+python $ADD_DSIG $FILES;
