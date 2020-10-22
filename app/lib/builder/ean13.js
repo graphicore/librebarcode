@@ -59,7 +59,7 @@ define([
               data.glyphs.push([
                   patternTransforms[setName](pattern)
                 , `${setName}.${name}` // e.g. setA.three
-                , [setName, ...groups]
+                , [setName, 'main', ...groups]
                 , []
               ]);
           }
@@ -302,13 +302,14 @@ define([
     };
 
     _p._getFeatures = function() {
-        var feature = [
-            '@numbers = [', this.getGlyphsByGroup('literal', 'number').map(g=>g.name).join(' '),'];\n'
-          , '@numBelow = [', this.getGlyphsByGroup('below', 'number').map(g=>g.name).join(' '),'];\n'
-          , '@setA = [', this.getGlyphsByGroup('symbol', 'setA').map(g=>g.name).join(' '),'];\n'
-          , '@setB = [', this.getGlyphsByGroup('symbol', 'setB').map(g=>g.name).join(' '),'];\n'
-          , '@setC = [', this.getGlyphsByGroup('symbol', 'setC').map(g=>g.name).join(' '),'];\n'
-          , `
+        var featureTag = 'ccmp'
+          , feature = [
+                '@numbers = [', this.getGlyphsByGroup('literal', 'number').map(g=>g.name).join(' '),'];\n'
+              , '@numBelow = [', this.getGlyphsByGroup('below', 'number').map(g=>g.name).join(' '),'];\n'
+              , '@setA = [', this.getGlyphsByGroup('symbol', 'setA', 'main').map(g=>g.name).join(' '),'];\n'
+              , '@setB = [', this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
+              , '@setC = [', this.getGlyphsByGroup('symbol', 'setC', 'main').map(g=>g.name).join(' '),'];\n'
+              , `
 #########
 ## EAN 13
 
@@ -327,7 +328,7 @@ lookup ean13_stop {
     sub nine by nine guard.normal;
 }ean13_stop;
 
-feature calt {
+feature ${featureTag} {
    sub @numbers
        @numbers
        @numbers
@@ -342,7 +343,7 @@ feature calt {
        @numbers
        @numbers' lookup ean13_stop
        ;
-}calt;
+}${featureTag};
 
 # substitute one to many to insert the centre guard symbol after
 # the sixth (actually seventh before the first is removed) number in ean 13
@@ -359,7 +360,7 @@ lookup ean13_insert_center {
     sub nine by nine guard.centre;
 }ean13_insert_center;
 
-feature calt {
+feature ${featureTag} {
    sub @numbers
        @numbers
        @numbers
@@ -375,7 +376,7 @@ feature calt {
        @numbers
        guard.normal
        ;
-}calt;
+}${featureTag};
 
 # substitute one to many to insert the start guard symbol after
 # the first number in ean 13 AND the human readable inital number,
@@ -393,7 +394,7 @@ lookup ean13_start {
     sub nine by below.nine guard.normal;
 }ean13_start;
 
-feature calt {
+feature ${featureTag} {
    sub @numbers' lookup ean13_start
        @numbers
        @numbers
@@ -410,7 +411,7 @@ feature calt {
        @numbers
        guard.normal
        ;
-}calt;
+}${featureTag};
 
 # change a @number to @setA
 lookup ean13_setA {
@@ -430,7 +431,7 @@ lookup ean13_setC {
 # Left half of an EAN-13 barcode
 # variable parity mix of number sets A and B for
 # the six symbol characters in the left half of the symbol.
-feature calt {
+feature ${featureTag} {
    sub below.zero
        guard.normal
        @numbers' lookup ean13_setA
@@ -531,11 +532,11 @@ feature calt {
        @numbers' lookup ean13_setA
        guard.centre
        ;
-}calt;
+}${featureTag};
 
 
 # Right half of an EAN-13 barcode is all setC
-feature calt {
+feature ${featureTag} {
    sub guard.centre
        @numbers' lookup ean13_setC
        @numbers' lookup ean13_setC
@@ -545,14 +546,14 @@ feature calt {
        @numbers' lookup ean13_setC
        guard.normal
        ;
-}calt;
+}${featureTag};
 
 ########
 ## EAN-8
 
 # substitute one to many to insert the stop/end guard symbol after
 # the last number in ean 8, reuses the lookup ean13_stop
-feature calt {
+feature ${featureTag} {
    sub @numbers
        @numbers
        @numbers
@@ -562,11 +563,11 @@ feature calt {
        @numbers
        @numbers' lookup ean13_stop
        ;
-}calt;
+}${featureTag};
 
 # substitute one to many to insert the centre guard symbol after
 # the sixth number in ean 8, reuses the lookup ean13_insert_center
-feature calt {
+feature ${featureTag} {
    sub @numbers
        @numbers
        @numbers
@@ -577,7 +578,7 @@ feature calt {
        @numbers
        guard.normal
        ;
-}calt;
+}${featureTag};
 
 # substitute one to many to insert the start guard symbol before
 # the first number in ean 8.
@@ -594,7 +595,7 @@ lookup ean8_start {
     sub nine by guard.normal nine;
 }ean8_start;
 
-feature calt {
+feature ${featureTag} {
    sub @numbers' lookup ean8_start
        @numbers
        @numbers
@@ -606,10 +607,10 @@ feature calt {
        @numbers
        guard.normal
        ;
-}calt;
+}${featureTag};
 
 # Left half of an EAN-8 barcode is all setA
-feature calt {
+feature ${featureTag} {
    sub guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setA
@@ -617,10 +618,10 @@ feature calt {
        @numbers' lookup ean13_setA
        guard.centre
        ;
-}calt;
+}${featureTag};
 
 # Right half of an EAN-8 barcode is all setC
-feature calt {
+feature ${featureTag} {
    sub guard.centre
        @numbers' lookup ean13_setC
        @numbers' lookup ean13_setC
@@ -628,13 +629,13 @@ feature calt {
        @numbers' lookup ean13_setC
        guard.normal
        ;
-}calt;
+}${featureTag};
 
 # hack to ensure quiet zone
 # the y movement number is a rough guess right now
-feature calt {
+feature ${featureTag} {
     pos @numBelow <0 -318 0 0>;
-}calt;
+}${featureTag};
 
 
 `
