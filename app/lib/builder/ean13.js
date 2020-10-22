@@ -148,6 +148,14 @@ define([
         }
     });
 
+    // CAUTION: if groups is an empty list this returns true.
+    _p.hasGroups = function(...groups) {
+        for(let group of groups) {
+            if(!this.groups.has(group)) return false;
+        }
+        return true;
+    };
+
     _p._drawPointsFromPattern = function(pen) {
         var parameters = this._parameters
           , pattern = this.drawData
@@ -156,8 +164,9 @@ define([
           , top = parameters.top
           , right = 0
           ;
-        if(['guard.normal', 'guard.centre'].indexOf(this.name) !== -1){
-          bottom -= 200;
+
+        if(this.hasGroups('auxiliary', 'main')){
+            bottom -= parameters.auxiliaryDrop;
         }
         for(let [i, modules] of pattern.entries()) {
           // S = space/light bar B = bar/dark bar
@@ -187,8 +196,12 @@ define([
             // it creates the same scaling for all of the font.
             // This results in the new height fitting into fontBelowHeight
             // units after scaling.
-        var height = this.fontBelow['OS/2'].typoAscender
-                            - this.fontBelow['OS/2'].typoDescender
+        var height = this.fontBelow['OS/2'].capHeight
+                            // Hmm - this is a courious hack! I instead
+                            // adjusted the fontBelowHeight to the value
+                            // of scale * typoAscender then removed this line
+                            //- this.fontBelow['OS/2'].typoDescender
+                            // new new scale is almost the same magnitude
           , scale = this._parameters.fontBelowHeight / height
           ;
         return scale;
@@ -221,17 +234,17 @@ define([
         if(Array.isArray(this.drawData)) {
             this._drawPointsFromPattern(pen);
 
-            if(this.name.startsWith('set')) {
-                let scale = this._getFontBelowScale()
-                  , name = `below.${this.name.slice(this.name.indexOf('.')+1)}`
-                  , transformation =  new Transform().translate(
-                          0, -this.fontBelow['OS/2'].typoAscender * scale)
+            // add font below ...
+            if(this.hasGroups('symbol', 'main')) {
+                let name = `below.${this.name.slice(this.name.indexOf('.')+1)}`
+                  , transformation =  new Transform().translate(0, -(this._parameters.fontBelowHeight+this._parameters.fontBelowPadding))
+                  ;
                   ;
                 pen.addComponent(name, transformation);
             }
+
             return;
         }
-
     };
 
     _p.createComposites = function* (withTextBelow) {
@@ -280,15 +293,10 @@ define([
     _p.getGlyphsByGroup = function(...groups) {
         var result = [];
 
-        glyphs:
         for(let glyph of this.glyphs) {
-            for(let group of groups) {
-                if(!glyph.groups.has(group))
-                    continue glyphs;
-            }
+            if(!glyph.hasGroups(...groups)) continue;
             result.push(glyph);
         }
-
 
         return result;
     };

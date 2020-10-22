@@ -62,6 +62,9 @@ EOT
 PARAMETERS_EAN13TEXT=$(cat <<EOT
 {
     "top": 890
+  , "fontBelowHeight": 280
+  , "fontBelowPadding": 30
+  , "auxiliaryDrop": 155
 }
 EOT
 )
