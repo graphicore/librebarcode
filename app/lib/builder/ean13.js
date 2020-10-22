@@ -62,6 +62,13 @@ define([
                 , [setName, 'main', ...groups]
                 , []
               ]);
+
+              data.glyphs.push([
+                  patternTransforms[setName](pattern)
+                , `${setName}.addOn.${name}` // e.g. setA.addOn.three
+                , [setName, 'add_on', ...groups]
+                , []
+              ]);
           }
       }
       // Draw numbers 0-9 from the fontBelow, to have feedback for the
@@ -165,9 +172,19 @@ define([
           , right = 0
           ;
 
-        if(this.hasGroups('auxiliary', 'main')){
+        // TODO: all these "special" cases, it should be configurable
+        // via the `parameters`.
+        if(this.hasGroups('auxiliary', 'main')
+                // the add-on symbols are at the bottom aligned with
+                // the guard patterns
+                || this.hasGroups('add_on')) {
             bottom -= parameters.auxiliaryDrop;
         }
+        if (this.hasGroups('add_on') /* auxiliary and main */ ) {
+            // make room for the text **above**
+            top -= this._parameters.fontBelowHeight + this._parameters.fontBelowPadding;
+        }
+
         for(let [i, modules] of pattern.entries()) {
           // S = space/light bar B = bar/dark bar
           // first item (i === 0) is always a space
@@ -239,6 +256,16 @@ define([
                 let name = `below.${this.name.slice(this.name.indexOf('.')+1)}`
                   , transformation =  new Transform().translate(0, -(this._parameters.fontBelowHeight+this._parameters.fontBelowPadding))
                   ;
+                pen.addComponent(name, transformation);
+            }
+
+            // add font above ...
+            if(this.hasGroups('symbol', 'add_on')) {
+                let name = `below.${this.name.slice(this.name.lastIndexOf('.')+1)}`
+                  , transformation =  new Transform().translate(0,
+                        // Glyph is at 0 (==bottom line) it is moved up,
+                        // so that it touches top:
+                        this._parameters.top - this._parameters.fontBelowHeight)
                   ;
                 pen.addComponent(name, transformation);
             }
