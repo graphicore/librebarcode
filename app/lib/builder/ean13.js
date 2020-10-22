@@ -101,6 +101,7 @@ define([
     data.glyphs.push(...[
             // Normal guard bar pattern
             [[0, 1, 1, 1], 'guard.normal', ['auxiliary', 'main'], []]
+          , [[0, 1, 1, 1], 'guard.normal.endTriggerAddon', ['auxiliary', 'main'], []]
             // Centre guard bar pattern
           , [[1, 1, 1, 1, 1], 'guard.centre', ['auxiliary', 'main'], []]
             // Special guard bar pattern
@@ -336,6 +337,15 @@ define([
               , '@setA = [', this.getGlyphsByGroup('symbol', 'setA', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setB = [', this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setC = [', this.getGlyphsByGroup('symbol', 'setC', 'main').map(g=>g.name).join(' '),'];\n'
+              // We need a group that holds a special version of stop guard, that
+              // enables a two/five digit add on:
+              //   * "guard.normal" at the end of EAN-8 must not trigger the add ons
+              //   *  but "guard.normal" at the end of EAN-13, UPC-A must trigger it
+              //   *  as well as "guard.special" which ends only UPC-E.
+              // "guard.normal.endTriggerAddon" is, despite of its name identical to
+              // "guard.normal" Also good, in this case is that having an explicit
+              // end-pattern that triggers the add-ons is very good to control.
+              , '@endTriggerAddOnn = [guard.normal.endTriggerAddon guard.special];\n'
               , `
 #########
 ## EAN 13
@@ -343,6 +353,19 @@ define([
 # substitute one to many to insert the stop/end guard symbol after
 # the last number in ean 13
 lookup ean13_stop {
+    sub zero by zero guard.normal.endTriggerAddon;
+    sub one by one guard.normal.endTriggerAddon;
+    sub two by two guard.normal.endTriggerAddon;
+    sub three by three guard.normal.endTriggerAddon;
+    sub four by four guard.normal.endTriggerAddon;
+    sub five by five guard.normal.endTriggerAddon;
+    sub six by six guard.normal.endTriggerAddon;
+    sub seven by seven guard.normal.endTriggerAddon;
+    sub eight by eight guard.normal.endTriggerAddon;
+    sub nine by nine guard.normal.endTriggerAddon;
+}ean13_stop;
+
+lookup ean8_stop {
     sub zero by zero guard.normal;
     sub one by one guard.normal;
     sub two by two guard.normal;
@@ -353,7 +376,7 @@ lookup ean13_stop {
     sub seven by seven guard.normal;
     sub eight by eight guard.normal;
     sub nine by nine guard.normal;
-}ean13_stop;
+}ean8_stop;
 
 feature ${featureTag} {
    sub @numbers
@@ -401,7 +424,7 @@ feature ${featureTag} {
        @numbers
        @numbers
        @numbers
-       guard.normal
+       guard.normal.endTriggerAddon
        ;
 }${featureTag};
 
@@ -436,7 +459,7 @@ feature ${featureTag} {
        @numbers
        @numbers
        @numbers
-       guard.normal
+       guard.normal.endTriggerAddon
        ;
 }${featureTag};
 
@@ -571,7 +594,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setC
        @numbers' lookup ean13_setC
        @numbers' lookup ean13_setC
-       guard.normal
+       guard.normal.endTriggerAddon
        ;
 }${featureTag};
 
@@ -579,7 +602,9 @@ feature ${featureTag} {
 ## EAN-8
 
 # substitute one to many to insert the stop/end guard symbol after
-# the last number in ean 8, reuses the lookup ean13_stop
+# the last number in ean 8, could reuse the lookup ean13_stop BUT
+# EAN-13 has a special named version of guard.normal (guard.normal.endTriggerAddon)
+# to allow triggering the add ons which ean-8 doesn't have.
 feature ${featureTag} {
    sub @numbers
        @numbers
@@ -588,7 +613,7 @@ feature ${featureTag} {
        @numbers
        @numbers
        @numbers
-       @numbers' lookup ean13_stop
+       @numbers' lookup ean8_stop
        ;
 }${featureTag};
 
