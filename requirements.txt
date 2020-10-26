@@ -1,1 +1,3 @@
 fontmake
+gftools
+font-v

@@ -19,21 +19,21 @@ ADD_DSIG="./app/bin/add-dsig.py"
 FAMILY_BASE_NAME="Libre Barcode"
 FILE_BASENAME="LibreBarcode"
 
-UNITS_PER_EM=1000
-ASCENDER=1200
-DESCENDER=-400
+UNITS_PER_EM=1024
+ASCENDER=900
+DESCENDER=-315
 STYLE_NAME="Regular"
 STYLEMAP_STYLE_NAME="regular"
 X_HEIGHT=400
-CAP_HEIGHT=590
+CAP_HEIGHT=900
 VENDOR_ID="GRCR"
 LICENSE='This Font Software is licensed under the SIL Open Font '\
-'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
-LICENSE_URL='http://scripts.sil.org/OFL'
+'License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL'
+LICENSE_URL='https://scripts.sil.org/OFL'
 COPYRIGHT="Copyright 2017-2019 The $FAMILY_BASE_NAME Project Authors (https://github.com/graphicore/librebarcode)"
-VERSION="Version 0.008"
-VERSION_MAJOR=0
-VERSION_MINOR=8
+VERSION="Version 1.004"
+VERSION_MAJOR=1
+VERSION_MINOR=4
 
 FONTINFO_EAN13TEXT=$(cat <<EOT
 {
