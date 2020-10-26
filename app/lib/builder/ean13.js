@@ -11,7 +11,6 @@ define([
     var drawFromFont = abstract.drawFromFont
       , Transform = abstract.Transform
       ;
-
     var data = {
         symbolsBase: [
             // Ther patterns are from Set A, Set B and Set C patterns will
@@ -41,6 +40,9 @@ define([
             [[7], 'space', [], [' ']]//
         ]
     };
+    // ['one', 'two', 'three', ...]
+    const DIGITS = data.symbolsBase.map(([,,name,])=>name);
+
     (()=>{
 
       let patternTransforms = {
@@ -62,7 +64,9 @@ define([
                 , [setName, 'main', ...groups]
                 , []
               ]);
-
+              // only setA and setB are used in add-ons
+              if(setName === 'setC')
+                  continue;
               data.glyphs.push([
                   patternTransforms[setName](pattern)
                 , `${setName}.addOn.${name}` // e.g. setA.addOn.three
@@ -100,14 +104,15 @@ define([
     // Auxiliary pattern
     data.glyphs.push(...[
             // Normal guard bar pattern
-            [[0, 1, 1, 1], 'guard.normal', ['auxiliary', 'main'], []]
-          , [[0, 1, 1, 1], 'guard.normal.endTriggerAddon', ['auxiliary', 'main'], []]
+            [[0, 1, 1, 1], 'guard.normal', ['auxiliary', 'main', 'guard.normal'], []]
+          , [[0, 1, 1, 1], 'guard.normal.triggerAddOn', ['auxiliary', 'main', 'guard.normal', 'triggerAddOn'], []]
             // Centre guard bar pattern
           , [[1, 1, 1, 1, 1], 'guard.centre', ['auxiliary', 'main'], []]
             // Special guard bar pattern
-          , [[1, 1, 1, 1, 1, 1], 'guard.special', ['auxiliary', 'main'], []]
+          , [[1, 1, 1, 1, 1, 1], 'guard.special', ['auxiliary', 'main', 'triggerAddOn'], []]
             // Add-on guard bar pattern
-          , [[0, 1, 1, 2], 'add_on.guard', ['auxiliary', 'add_on'], []]
+          , [[0, 1, 1, 2], 'add_on.guard.twoDigit', ['auxiliary', 'add_on', 'add_on.guard'], []]
+          , [[0, 1, 1, 2], 'add_on.guard.fiveDigit', ['auxiliary', 'add_on', 'add_on.guard'], []]
             // Add-on delineator
           , [[1, 1], 'add_on.delineator', ['auxiliary', 'add_on'], []]
     ]);
@@ -184,6 +189,16 @@ define([
         if (this.hasGroups('add_on') /* auxiliary and main */ ) {
             // make room for the text **above**
             top -= this._parameters.fontBelowHeight + this._parameters.fontBelowPadding;
+        }
+
+        if (this.hasGroups('add_on.guard')) {
+            // Add a quiet-zone between the barcode and the add-on
+            // FIXME: the quiet zone should probably be established by
+            // the closing normal/special guards
+            // right === advance
+
+            // doesn't change glyph width!
+            //right = 400;
         }
 
         for(let [i, modules] of pattern.entries()) {
@@ -330,22 +345,13 @@ define([
     };
 
     _p._getFeatures = function() {
-        var featureTag = 'ccmp'
+        var featureTag = 'calt'
           , feature = [
                 '@numbers = [', this.getGlyphsByGroup('literal', 'number').map(g=>g.name).join(' '),'];\n'
               , '@numBelow = [', this.getGlyphsByGroup('below', 'number').map(g=>g.name).join(' '),'];\n'
               , '@setA = [', this.getGlyphsByGroup('symbol', 'setA', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setB = [', this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setC = [', this.getGlyphsByGroup('symbol', 'setC', 'main').map(g=>g.name).join(' '),'];\n'
-              // We need a group that holds a special version of stop guard, that
-              // enables a two/five digit add on:
-              //   * "guard.normal" at the end of EAN-8 must not trigger the add ons
-              //   *  but "guard.normal" at the end of EAN-13, UPC-A must trigger it
-              //   *  as well as "guard.special" which ends only UPC-E.
-              // "guard.normal.endTriggerAddon" is, despite of its name identical to
-              // "guard.normal" Also good, in this case is that having an explicit
-              // end-pattern that triggers the add-ons is very good to control.
-              , '@endTriggerAddOnn = [guard.normal.endTriggerAddon guard.special];\n'
               , `
 #########
 ## EAN 13
@@ -353,16 +359,16 @@ define([
 # substitute one to many to insert the stop/end guard symbol after
 # the last number in ean 13
 lookup ean13_stop {
-    sub zero by zero guard.normal.endTriggerAddon;
-    sub one by one guard.normal.endTriggerAddon;
-    sub two by two guard.normal.endTriggerAddon;
-    sub three by three guard.normal.endTriggerAddon;
-    sub four by four guard.normal.endTriggerAddon;
-    sub five by five guard.normal.endTriggerAddon;
-    sub six by six guard.normal.endTriggerAddon;
-    sub seven by seven guard.normal.endTriggerAddon;
-    sub eight by eight guard.normal.endTriggerAddon;
-    sub nine by nine guard.normal.endTriggerAddon;
+    sub zero by zero guard.normal.triggerAddOn;
+    sub one by one guard.normal.triggerAddOn;
+    sub two by two guard.normal.triggerAddOn;
+    sub three by three guard.normal.triggerAddOn;
+    sub four by four guard.normal.triggerAddOn;
+    sub five by five guard.normal.triggerAddOn;
+    sub six by six guard.normal.triggerAddOn;
+    sub seven by seven guard.normal.triggerAddOn;
+    sub eight by eight guard.normal.triggerAddOn;
+    sub nine by nine guard.normal.triggerAddOn;
 }ean13_stop;
 
 lookup ean8_stop {
@@ -424,7 +430,7 @@ feature ${featureTag} {
        @numbers
        @numbers
        @numbers
-       guard.normal.endTriggerAddon
+       guard.normal.triggerAddOn
        ;
 }${featureTag};
 
@@ -459,7 +465,7 @@ feature ${featureTag} {
        @numbers
        @numbers
        @numbers
-       guard.normal.endTriggerAddon
+       guard.normal.triggerAddOn
        ;
 }${featureTag};
 
@@ -594,7 +600,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setC
        @numbers' lookup ean13_setC
        @numbers' lookup ean13_setC
-       guard.normal.endTriggerAddon
+       guard.normal.triggerAddOn
        ;
 }${featureTag};
 
@@ -603,7 +609,7 @@ feature ${featureTag} {
 
 # substitute one to many to insert the stop/end guard symbol after
 # the last number in ean 8, could reuse the lookup ean13_stop BUT
-# EAN-13 has a special named version of guard.normal (guard.normal.endTriggerAddon)
+# EAN-13 has a special named version of guard.normal (guard.normal.triggerAddOn)
 # to allow triggering the add ons which ean-8 doesn't have.
 feature ${featureTag} {
    sub @numbers
@@ -689,6 +695,154 @@ feature ${featureTag} {
     pos @numBelow <0 -318 0 0>;
 }${featureTag};
 
+
+# Add ons
+# NOTE: the five digit add-on should be triggered first, otherwise, the
+# 2 didgit add on would "shadow" or negatively impair the 5 digit add-on
+# lookup wise, this will can building after a @endTriggerAddOn was
+# inserted, which is usually  the first thing we do for a barcode.
+
+
+# We need a group that holds a special version of stop guard, that
+# enables a two/five digit add on:
+#   * "guard.normal" at the end of EAN-8 must not trigger the add ons
+#   *  but "guard.normal" at the end of EAN-13, UPC-A must trigger it
+#   *  as well as "guard.special" which ends only UPC-E.
+# "guard.normal.triggerAddOn" is, despite of its name identical to
+# "guard.normal" Also good, in this case is that having an explicit
+# end-pattern that triggers the add-ons is very good to control.
+
+
+
+
+
+@endTriggerAddOn = [${ this.getGlyphsByGroup('triggerAddOn').map(g=>g.name).join(' ') }];
+
+lookup addOn_start_five {
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn add_on.guard.fiveDigit;
+    sub guard.special by guard.normal.triggerAddOn add_on.guard.fiveDigit;
+}addOn_start_five;
+
+lookup addOn_start_two {
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn add_on.guard.twoDigit;
+    sub guard.special by guard.normal.triggerAddOn add_on.guard.twoDigit;
+}addOn_start_two;
+
+feature ${featureTag} {
+  # five digit
+  sub @endTriggerAddOn' lookup addOn_start_five
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      ;
+  # two digit
+  sub @endTriggerAddOn' lookup addOn_start_two
+      @numbers
+      @numbers
+      ;
+}${featureTag};
+
+@addOnSetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'add_on').map(g=>g.name).join(' ')}];
+@addOnSetB = [${ this.getGlyphsByGroup('symbol', 'setB', 'add_on').map(g=>g.name).join(' ')}];
+
+# change a @number to @addOnSetA
+lookup addOn_setA{
+  sub @numbers by @addOnSetA;
+}addOn_setA;
+
+# change a @number to @addOnSetB
+lookup addOn_setB{
+  sub @numbers by @addOnSetB;
+}addOn_setB;
+`,
+...(()=>{
+  // since this doesn't work:
+  //    sub @numbers by add_on.delineator @addOnSetA;
+  function* makeSubs(setName) {
+    for(let name of DIGITS)
+      // sub one by add_on.delineator one.
+      yield `    sub ${name} by add_on.delineator ${setName}.addOn.${name};` + '\n';
+  }
+  return [`
+# change a @number to add_on.delineator @addOnSetA
+lookup addOn_setA_right{
+`,
+  ...makeSubs('setA'),
+`}addOn_setA_right;
+
+# change a @number to add_on.delineator @addOnSetB
+lookup addOn_setB_right{
+`,
+...makeSubs('setA'),
+`}addOn_setB_right;`
+  ];
+})(),
+`
+# Multiple of 4 (00,04,08,..96)
+lookup addOn_twoDigit_remainZero{
+    sub @numbers' lookup addOn_setA
+        @numbers' lookup addOn_setA_right
+        ;
+}addOn_twoDigit_remainZero;
+
+# Multiple of 4+1 (01,05,..97)
+lookup addOn_twoDigit_remainOne{
+    sub @numbers' lookup addOn_setA
+        @numbers' lookup addOn_setB_right
+        ;
+}addOn_twoDigit_remainOne;
+
+# Multiple of 4+2 (02,06,..98)
+lookup addOn_twoDigit_remainTwo{
+    sub @numbers' lookup addOn_setB
+        @numbers' lookup addOn_setA_right
+        ;
+}addOn_twoDigit_remainTwo;
+
+# Multiple of 4+3 (03,07,..99)
+lookup addOn_twoDigit_remainThree{
+    sub @numbers' lookup addOn_setB
+        @numbers' lookup addOn_setB_right
+        ;
+}addOn_twoDigit_remainThree;
+
+
+
+
+feature ${featureTag} {
+`,
+// => this won't work!
+// sub zero one by zero.set_A one.set_B
+
+// => maybe this:
+
+...(function*(){
+    let lookups = [
+          'addOn_twoDigit_remainZero',
+          'addOn_twoDigit_remainOne',
+          'addOn_twoDigit_remainTwo',
+          'addOn_twoDigit_remainThree'
+    ];
+    for(let i=0, l=100; i<l; i++) {
+        let lookup = lookups[i%4]
+          , left = DIGITS[Math.floor(i/10)]
+          , right = DIGITS[i % 10]
+          ;
+
+        //sub zero' one' lookup addOn_twoDigit_remainOne
+        // sub zero' five' lookup addOn_twoDigit_remainOne
+        yield `    sub add_on.guard.twoDigit ${left}' lookup ${lookup} ${right}';` + '\n';
+
+    }
+}()),
+`}${featureTag};
+
+# hack to ensure quiet zone
+feature ${featureTag} {
+    pos [add_on.guard.twoDigit add_on.guard.fiveDigit] <200 0 200 0>;
+}${featureTag};
 
 `
         ];
