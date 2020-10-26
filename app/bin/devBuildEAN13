@@ -30,15 +30,15 @@ VENDOR_ID="GRCR"
 LICENSE='This Font Software is licensed under the SIL Open Font '\
 'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
 LICENSE_URL='http://scripts.sil.org/OFL'
-COPYRIGHT="Copyright 2017 The $FAMILY_BASE_NAME Project Authors (lasse@graphicore.de)"
-VERSION="Version 0.001"
+COPYRIGHT="Copyright 2017-2019 The $FAMILY_BASE_NAME Project Authors (https://github.com/graphicore/librebarcode)"
+VERSION="Version 0.008"
 VERSION_MAJOR=0
-VERSION_MINOR=1
+VERSION_MINOR=8
 
 FONTINFO_EAN13TEXT=$(cat <<EOT
 {
-    "familyName": "${FAMILY_BASE_NAME} EAN 13 Text"
-  , "styleMapFamilyName": "${FAMILY_BASE_NAME} EAN 13 Text"
+    "familyName": "${FAMILY_BASE_NAME} EAN13 Text"
+  , "styleMapFamilyName": "${FAMILY_BASE_NAME} EAN13 Text"
   , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
   , "styleName": "${STYLE_NAME}"
   , "unitsPerEm": ${UNITS_PER_EM}
@@ -106,3 +106,5 @@ ls fonts
 
 FILES=$(find fonts -type f -name "*.ttf")
 python $ADD_DSIG $FILES;
+gftools fix-hinting fonts/LibreBarcodeEAN13Text-Regular.ttf
+mv fonts/LibreBarcodeEAN13Text-Regular.ttf.fix fonts/LibreBarcodeEAN13Text-Regular.ttf
