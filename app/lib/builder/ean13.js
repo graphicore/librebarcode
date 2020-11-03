@@ -1,4 +1,4 @@
-// jshint esversion: 6
+// jshint esversion: 7
 define([
     'LibreBarcode/builder/abstract'
   , 'LibreBarcode/validation'
@@ -690,7 +690,7 @@ feature ${featureTag} {
 }${featureTag};
 
 # hack to ensure quiet zone
-# the y movement number is a rough guess right now
+# FIXME: the y movement number is a rough guess right now
 feature ${featureTag} {
     pos @numBelow <0 -318 0 0>;
 }${featureTag};
@@ -699,7 +699,7 @@ feature ${featureTag} {
 # Add ons
 # NOTE: the five digit add-on should be triggered first, otherwise, the
 # 2 didgit add on would "shadow" or negatively impair the 5 digit add-on
-# lookup wise, this will can building after a @endTriggerAddOn was
+# lookup wise, this can start building after a @endTriggerAddOn was
 # inserted, which is usually  the first thing we do for a barcode.
 
 
@@ -712,20 +712,16 @@ feature ${featureTag} {
 # "guard.normal" Also good, in this case is that having an explicit
 # end-pattern that triggers the add-ons is very good to control.
 
-
-
-
-
 @endTriggerAddOn = [${ this.getGlyphsByGroup('triggerAddOn').map(g=>g.name).join(' ') }];
 
 lookup addOn_start_five {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn add_on.guard.fiveDigit;
-    sub guard.special by guard.normal.triggerAddOn add_on.guard.fiveDigit;
+    sub guard.special by guard.special add_on.guard.fiveDigit;
 }addOn_start_five;
 
 lookup addOn_start_two {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn add_on.guard.twoDigit;
-    sub guard.special by guard.normal.triggerAddOn add_on.guard.twoDigit;
+    sub guard.special by guard.special add_on.guard.twoDigit;
 }addOn_start_two;
 
 feature ${featureTag} {
@@ -808,9 +804,6 @@ lookup addOn_twoDigit_remainThree{
         ;
 }addOn_twoDigit_remainThree;
 
-
-
-
 feature ${featureTag} {
 `,
 // => this won't work!
@@ -838,6 +831,255 @@ feature ${featureTag} {
     }
 }()),
 `}${featureTag};
+
+# AddOn Five Digits
+`,
+...(function*(){
+    var numbersets = ['BBAAA', 'BABAA', 'BAABA', 'BAAAB', 'ABBAA'
+                    , 'AABBA', 'AAABB', 'ABABA', 'ABAAB', 'AABAB'];
+    for(let i=0; i<10; i++){
+      let name=DIGITS[i]
+        , numberset=numbersets[i]
+        , sub = []
+        ;
+      for(let setName of numberset)
+          sub.push(`@numbers' lookup addOn_set${setName}`);
+      yield `
+lookup addOn_FiveDigit_numberset_${name}{
+    sub ${sub.join("\n        ")};
+}addOn_FiveDigit_numberset_${name};`+'\n';
+    }
+}())
+,`
+# only numbers starting with one two
+# each of these (100) will contain 1000 substitution rules for the last three
+# digits 000 to 999
+`,
+...(function*(){
+    function getDigits(num_, padLen) {
+        let num = Math.abs(Math.floor(num_))
+          , digits = [...((num >= 10) ? getDigits(num/10) : []), num % 10]
+          ;
+        if(!padLen || digits.length >= padLen)
+            return digits;
+        let padding = [];
+        for(let i=0, l=padLen-digits.length; i<l; i++)
+            padding.push(0);
+        return [...padding, ...digits];
+    }
+    function getNamesByDigits(digits) {
+        return digits.map(d=>DIGITS[d]);
+    }
+    function getDigitNames(num, padLen){
+        return getNamesByDigits(getDigits(num, padLen));
+    }
+
+    function chksm(i) {
+        let [d1, d2, d3, d4, d5] = getDigits(i, 5);
+        return ((d1 + d3 + d5) * 3 + (d2 + d4) * 9) % 10;
+    }
+
+    function makeSubNumberset(num, backtrack) {
+      let checksum = chksm(num)
+        , [name1, name2, name3, name4, name5] = getDigitNames(num, 5)
+        , numberset = DIGITS[checksum]
+        ;
+        return `sub${backtrack ? ' '+backtrack+' ' : ''} `
+             + `${name1}' lookup addOn_FiveDigit_numberset_${numberset} `
+             + `${name2}' ${name3}' ${name4}' ${name5}';`;
+    }
+/*
+    function* makeSubs(magnitude) {
+        for(let i=0; i<10; i++) {
+            let num = magnitude * 10 + i;
+            yield makeSubNumberset(num);
+        }
+    }
+    for(let i=0; i<10000  ; i++) {
+        let [name1, name2, name3, name4] = getDigitNames(i, 4)
+          ;
+      yield`
+lookup addOn_FiveDigit_selectNumberset_${name1}_${name2}_${name3}_${name4} useExtension{
+    ${[...makeSubs(i)].join('\n    ')}
+}addOn_FiveDigit_selectNumberset_${name1}_${name2}_${name3}_${name4};` + '\n\n';
+    }
+
+    // we make 10 k of these!
+    function* makeSubs_3_4(magnitude) {
+        for(let i=0; i<100; i++) {
+            let num = magnitude * 100 + i
+              , [name1, name2, name3, name4] = getDigitNames(num, 4)
+              ;
+          yield `sub ${name1}' `
+              + `lookup  ${name1}_${name2}_${name3}_${name4} ${name2}' `
+              + `${name3}' ${name4}' @numbers';`;
+        }
+    }
+
+    for(let i=0; i<100; i++) {
+        let [name1, name2] = getDigitNames(i, 2);
+        yield `
+lookup addOn_FiveDigit_selectNumberset_${name1}_${name2} useExtension{
+    ${[...makeSubs_3_4(i)].join('\n    ')}
+}addOn_FiveDigit_selectNumberset_${name1}_${name2};` + '\n';
+    }
+
+    yield `
+# this way we have to check only max 100 in the first run, then
+# max 1000 in the second run, much better than max 100000 in one lookup
+lookup addOn_FiveDigit_selectNumberset useExtension {
+    # addon five digit select numberset
+    # We'll have one hundred of these 00 to 99 initial digits:
+`;
+    for(let i=0; i<100; i++) {
+        let [name1, name2] = getDigitNames(i, 2);
+        // sub add_on.guard.fiveDigit one' lookup addOn_FiveDigit_selectNumberset_one_two two' @numbers' @numbers' @numbers';
+        yield `    sub add_on.guard.fiveDigit ${name1}' `
+            + `lookup addOn_FiveDigit_selectNumberset_${name1}_${name2} `
+            + `${name2}' @numbers' @numbers' @numbers';` + '\n';
+    }
+    yield `}addOn_FiveDigit_selectNumberset;` + '\n';
+*/
+
+  function makeSubPartion(size, digits, num, backtrack) {
+      let names = getDigitNames(num, size).slice(0, digits)
+        , allItems = [...names]
+        , lookupName = 'addOn_FiveDigit_selectNumberset'
+                            + names.map(n=>`_${n}`).join('')
+        ;
+      for(let i=digits-1;i<size;i++)
+          allItems.push('@numbers');
+      let trailingInputSeq = allItems.slice(1).map(n=>`${n}'`).join(' ');
+      return `sub${backtrack ? ' '+backtrack+' ': ''} ${allItems[0]}' `
+           + `lookup ${lookupName} ${trailingInputSeq};`;
+  }
+
+  function* partition_subs(size, ...partitions) {
+      // let firstPartition = true;
+      //
+      // //first partition
+      // // makeSub already covers this
+      // `sub ${name1}' lookup addOn_FiveDigit_numberset_${numberset} ${name2}' ${name3}' ${name4}' ${name5}';`
+      //
+      // // in between partitions all names known towards the end must be included
+      // `sub ${name1}' lookup  addOn_FiveDigit_selectNumberset_${name1}_${name2}_${name3}_${name4} ${name2}' ${name3}' ${name4}' @numbers';`;
+      //
+      // 2 2 1
+      // // last partition // general (most important, add to the prefix/backtrack: " add_on.guard.fiveDigit "
+      // // if the first partition is the last partition e.g. size = 5, partitions = [5]
+      // // makeSub must include that backtrack!
+      // `sub add_on.guard.fiveDigit @numbers' lookup ${previous_lookup_name} @numbers' @numbers' @numbers' @numbers' @numbers';`
+      // // last partition, size two actual
+      // `sub add_on.guard.fiveDigit ${name1}' lookup addOn_FiveDigit_selectNumberset_${name1}_${name2} ${name2}' @numbers' @numbers' @numbers';` + '\n';
+
+      let digitsConsumed = 0;
+      for(let partition of partitions) {
+          let digitsToConsume = Math.max(0, size - digitsConsumed)
+            , digitsConsuming = partition + digitsConsumed
+            , backtrack = null
+            ;
+          if(digitsToConsume === 0) {
+              // last partition, add backtrack to select correct context
+              backtrack = 'add_on.guard.fiveDigit';
+          }
+          let makeSubs = (digitsConsumed === 0)
+                  ? makeSubNumberset // (num, backtrack)
+                  : (num, backtrack)=>makeSubPartion(size, digitsToConsume, num, backtrack)
+                  ;
+          for(let lnum=0, lend=10**size, lstep=10**digitsConsuming;lnum<lend;lnum+=lstep) {
+              let names = getDigitNames(lnum, size).slice(0, size-digitsConsuming)
+                , lookupName = 'addOn_FiveDigit_selectNumberset'
+                                        + names.map(n=>`_${n}`).join('')
+                ;
+              console.log(`lnum=${lnum}, lend=${lend}, lstep=${lstep}: ${lookupName}: partition ${partition} digitsToConsume ${digitsToConsume} digitsConsumed ${digitsConsumed}`);
+              yield '\n' + `lookup ${lookupName}{` + '\n';
+              for(let num=lnum, end=lnum+lstep, step=10**digitsConsumed, count=0; num<end;num+=step, count++) {
+                  // if(num <= lnum + 12 * step)
+                  //   console.log(num, digitsConsumed, digitsToConsume, `end ${end} step ${step}`, '::', makeSubs(num, backtrack));
+                  // else
+                  //   break;
+
+                  // subtable breaks, seems not to change anything:
+                  // if(count && count % 100 === 0)
+                  //      yield `    subtable;` + '\n';
+                  yield `    ${makeSubs(num, backtrack)}` + '\n';
+              }
+              yield  `}${lookupName};` + '\n';
+          }
+
+          digitsConsumed += partition;
+      }
+  }
+
+  yield* partition_subs(5, 1, 1, 1, 1, 1)//, 2, 1, 2);
+})()
+,`
+
+
+
+
+feature ${featureTag} {
+    lookup addOn_FiveDigit_selectNumberset;
+}${featureTag};
+
+# finish the addon by inserting the delineator between all number symbols
+lookup addOnNumbersAB_insert_delineator{
+`, ...(function*(glyphs){
+      // contains setA and setB add_on symbols
+      for(let glyph of glyphs)
+          yield `    sub ${glyph.name} by add_on.delineator ${glyph.name};` + '\n';
+      }(this.getGlyphsByGroup('symbol', 'add_on')))
+    ,`
+}addOnNumbersAB_insert_delineator;
+
+@addOnSetAB = [${ this.getGlyphsByGroup('symbol', 'add_on').map(g=>g.name).join(' ') }];
+
+feature ${featureTag} {
+    sub add_on.guard.fiveDigit
+        @addOnSetAB
+        @addOnSetAB
+        @addOnSetAB
+        @addOnSetAB
+        @addOnSetAB' lookup addOnNumbersAB_insert_delineator
+        ;
+}${featureTag};
+
+feature ${featureTag} {
+    sub add_on.guard.fiveDigit
+        @addOnSetAB
+        @addOnSetAB
+        @addOnSetAB
+        @addOnSetAB' lookup addOnNumbersAB_insert_delineator
+        add_on.delineator
+        @addOnSetAB
+        ;
+}${featureTag};
+
+feature ${featureTag} {
+    sub add_on.guard.fiveDigit
+        @addOnSetAB
+        @addOnSetAB
+        @addOnSetAB' lookup addOnNumbersAB_insert_delineator
+        add_on.delineator
+        @addOnSetAB
+        add_on.delineator
+        @addOnSetAB
+        ;
+}${featureTag};
+
+feature ${featureTag} {
+    sub add_on.guard.fiveDigit
+        @addOnSetAB
+        @addOnSetAB' lookup addOnNumbersAB_insert_delineator
+        add_on.delineator
+        @addOnSetAB
+        add_on.delineator
+        @addOnSetAB
+        add_on.delineator
+        @addOnSetAB
+        ;
+}${featureTag};
+
 
 # hack to ensure quiet zone
 feature ${featureTag} {
