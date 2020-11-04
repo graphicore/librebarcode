@@ -245,7 +245,9 @@ define([
         var transformation = null;
         if(this.name.startsWith('below.')) {
             let scale = this._getFontBelowScale();
-            transformation = new Transform().scale(scale);
+            transformation = new Transform()
+                .translate(0, -(this._parameters.fontBelowHeight + this._parameters.fontBelowPadding))
+                .scale(scale);
         }
         let [advanceWidth, drawPointsFunc] = drawFromFont(
                   this.fontBelow, this.drawData.charCode, transformation);
@@ -269,19 +271,18 @@ define([
 
             // add font below ...
             if(this.hasGroups('symbol', 'main')) {
-                let name = `below.${this.name.slice(this.name.indexOf('.')+1)}`
-                  , transformation =  new Transform().translate(0, -(this._parameters.fontBelowHeight+this._parameters.fontBelowPadding))
-                  ;
-                pen.addComponent(name, transformation);
+                let name = `below.${this.name.slice(this.name.indexOf('.')+1)}`;
+                pen.addComponent(name, new Transform());
             }
 
             // add font above ...
             if(this.hasGroups('symbol', 'add_on')) {
                 let name = `below.${this.name.slice(this.name.lastIndexOf('.')+1)}`
                   , transformation =  new Transform().translate(0,
-                        // Glyph is at 0 (==bottom line) it is moved up,
-                        // so that it touches top:
-                        this._parameters.top - this._parameters.fontBelowHeight)
+                        // Glyph is at -(this._parameters.fontBelowHeight
+                        //                  + this._parameters.fontBelowPadding)
+                        // it is moved up, so that it touches top:
+                        this._parameters.top + this._parameters.fontBelowPadding)
                   ;
                 pen.addComponent(name, transformation);
             }
@@ -687,12 +688,6 @@ feature ${featureTag} {
        @numbers' lookup ean13_setC
        guard.normal
        ;
-}${featureTag};
-
-# hack to ensure quiet zone
-# FIXME: the y movement number is a rough guess right now
-feature ${featureTag} {
-    pos @numBelow <0 -318 0 0>;
 }${featureTag};
 
 
