@@ -743,12 +743,12 @@ feature ${featureTag} {
 @addOnSetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'add_on').map(g=>g.name).join(' ')}];
 @addOnSetB = [${ this.getGlyphsByGroup('symbol', 'setB', 'add_on').map(g=>g.name).join(' ')}];
 
-# change a @number to @addOnSetA
+# change a @numbers to @addOnSetA
 lookup addOn_setA{
   sub @numbers by @addOnSetA;
 }addOn_setA;
 
-# change a @number to @addOnSetB
+# change a @numbers to @addOnSetB
 lookup addOn_setB{
   sub @numbers by @addOnSetB;
 }addOn_setB;
@@ -762,16 +762,16 @@ lookup addOn_setB{
       yield `    sub ${name} by add_on.delineator ${setName}.addOn.${name};` + '\n';
   }
   return [`
-# change a @number to add_on.delineator @addOnSetA
+# change a @numbers to add_on.delineator @addOnSetA
 lookup addOn_setA_right{
 `,
   ...makeSubs('setA'),
 `}addOn_setA_right;
 
-# change a @number to add_on.delineator @addOnSetB
+# change a @numbers to add_on.delineator @addOnSetB
 lookup addOn_setB_right{
 `,
-...makeSubs('setA'),
+...makeSubs('setB'),
 `}addOn_setB_right;`
   ];
 })(),
@@ -834,28 +834,8 @@ feature ${featureTag} {
 
 # AddOn Five Digits
 `,
-...(function*(){
-    var numbersets = ['BBAAA', 'BABAA', 'BAABA', 'BAAAB', 'ABBAA'
-                    , 'AABBA', 'AAABB', 'ABABA', 'ABAAB', 'AABAB'];
-    for(let i=0; i<10; i++){
-      let name=DIGITS[i]
-        , numberset=numbersets[i]
-        , sub = []
-        ;
-      for(let setName of numberset)
-          sub.push(`@numbers' lookup addOn_set${setName}`);
-      yield `
-lookup addOn_FiveDigit_numberset_${name}{
-    sub ${sub.join("\n        ")};
-}addOn_FiveDigit_numberset_${name};`+'\n';
-    }
-}())
-,`
-# only numbers starting with one two
-# each of these (100) will contain 1000 substitution rules for the last three
-# digits 000 to 999
-`,
-...(function*(){
+(()=>{
+    // returns an empty string, left here for documentation
     function getDigits(num_, padLen) {
         let num = Math.abs(Math.floor(num_))
           , digits = [...((num >= 10) ? getDigits(num/10) : []), num % 10]
@@ -867,160 +847,170 @@ lookup addOn_FiveDigit_numberset_${name}{
             padding.push(0);
         return [...padding, ...digits];
     }
-    function getNamesByDigits(digits) {
-        return digits.map(d=>DIGITS[d]);
-    }
-    function getDigitNames(num, padLen){
-        return getNamesByDigits(getDigits(num, padLen));
-    }
-
+    // The original checksum calculation:
     function chksm(i) {
         let [d1, d2, d3, d4, d5] = getDigits(i, 5);
         return ((d1 + d3 + d5) * 3 + (d2 + d4) * 9) % 10;
     }
-
-    function makeSubNumberset(num, backtrack) {
-      let checksum = chksm(num)
-        , [name1, name2, name3, name4, name5] = getDigitNames(num, 5)
-        , numberset = DIGITS[checksum]
-        ;
-        return `sub${backtrack ? ' '+backtrack+' ' : ''} `
-             + `${name1}' lookup addOn_FiveDigit_numberset_${numberset} `
-             + `${name2}' ${name3}' ${name4}' ${name5}';`;
-    }
-/*
-    function* makeSubs(magnitude) {
-        for(let i=0; i<10; i++) {
-            let num = magnitude * 10 + i;
-            yield makeSubNumberset(num);
-        }
-    }
-    for(let i=0; i<10000  ; i++) {
-        let [name1, name2, name3, name4] = getDigitNames(i, 4)
+    // This is equivalent to chksm (verified it for i=0;i<=100000;i++),
+    // but it uses only the least significant
+    // digit for each calculation. Much easier to implement in GSUB!
+    // Keeping it for documentation, it won't be called.
+    function chksm2(i) {
+        let [d1, d2, d3, d4, d5] = getDigits(i, 5)
+          // only use the least significant digit of each calculation
+          , d1_3 = (d1 + d3) % 10
+          , d1_3_5 = (d1_3 + d5) % 10
+          , d1_3_5x3 = (d1_3_5 * 3) % 10
+          , d2_4 = (d2 + d4) % 10
+          , d2_4x9 = (d2_4 * 9) % 10
           ;
-      yield`
-lookup addOn_FiveDigit_selectNumberset_${name1}_${name2}_${name3}_${name4} useExtension{
-    ${[...makeSubs(i)].join('\n    ')}
-}addOn_FiveDigit_selectNumberset_${name1}_${name2}_${name3}_${name4};` + '\n\n';
+        return (d1_3_5x3 + d2_4x9) % 10;
+    }
+    return '';
+})()
+,...(function*(){
+    for(let name of DIGITS) {
+      yield `
+lookup result_${name} {
+    # GSUB LookupType 2] Multiple substitution -> insert an additional number
+    # as result after the guard
+    sub add_on.guard.fiveDigit by add_on.guard.fiveDigit below.${name};
+    # [GSUB LookupType 1] Single substitution -> replace an existing numBelow
+    # with the result
+    sub @numBelow by below.${name};
+}result_${name};` + '\n';
     }
 
-    // we make 10 k of these!
-    function* makeSubs_3_4(magnitude) {
-        for(let i=0; i<100; i++) {
-            let num = magnitude * 100 + i
-              , [name1, name2, name3, name4] = getDigitNames(num, 4)
+
+    // checksum calculation follows
+    yield `
+# using the below digits to store calculation results
+feature ${featureTag}{
+    # STEP 1 A: Sum the digits in Positions one and three, keep modulo 10.
+    # inserts the result right after add_on.guard.fiveDigit
+    # => add_on.guard.fiveDigit @numBelow[STEP 1 A] @numbers ...` + '\n';
+    for(let i=0;i<10;i++) {
+        for(let j=0;j<10;j++) {
+            let d1 = DIGITS[i]
+              , d2 = DIGITS[j]
+              , r = DIGITS[(i + j) % 10]
               ;
-          yield `sub ${name1}' `
-              + `lookup  ${name1}_${name2}_${name3}_${name4} ${name2}' `
-              + `${name3}' ${name4}' @numbers';`;
+            yield `    sub add_on.guard.fiveDigit' lookup result_${r} ${d1} @numbers ${d2};` + '\n';
         }
     }
+    yield`}${featureTag};` + '\n';
 
-    for(let i=0; i<100; i++) {
-        let [name1, name2] = getDigitNames(i, 2);
-        yield `
-lookup addOn_FiveDigit_selectNumberset_${name1}_${name2} useExtension{
-    ${[...makeSubs_3_4(i)].join('\n    ')}
-}addOn_FiveDigit_selectNumberset_${name1}_${name2};` + '\n';
-    }
 
     yield `
-# this way we have to check only max 100 in the first run, then
-# max 1000 in the second run, much better than max 100000 in one lookup
-lookup addOn_FiveDigit_selectNumberset useExtension {
-    # addon five digit select numberset
-    # We'll have one hundred of these 00 to 99 initial digits:
-`;
-    for(let i=0; i<100; i++) {
-        let [name1, name2] = getDigitNames(i, 2);
-        // sub add_on.guard.fiveDigit one' lookup addOn_FiveDigit_selectNumberset_one_two two' @numbers' @numbers' @numbers';
-        yield `    sub add_on.guard.fiveDigit ${name1}' `
-            + `lookup addOn_FiveDigit_selectNumberset_${name1}_${name2} `
-            + `${name2}' @numbers' @numbers' @numbers';` + '\n';
+feature ${featureTag}{
+    # STEP 1 B: Sum the digits in Positions STEP 1 A (one + three) and five, keep modulo 10.
+    # => add_on.guard.fiveDigit @numBelow[STEP 1 B] @numbers ...` + '\n';
+    for(let i=0;i<10;i++) {
+        for(let j=0;j<10;j++) {
+            let d1 = DIGITS[i]
+              , d2 = DIGITS[j]
+              , r = DIGITS[(i + j) % 10]
+              ;
+            yield `    sub add_on.guard.fiveDigit below.${d1}' lookup result_${r} @numbers @numbers @numbers @numbers ${d2};` + '\n';
+        }
     }
-    yield `}addOn_FiveDigit_selectNumberset;` + '\n';
-*/
+    yield`}${featureTag};` + '\n';
 
-  function makeSubPartion(size, digits, num, backtrack) {
-      let names = getDigitNames(num, size).slice(0, digits)
-        , allItems = [...names]
-        , lookupName = 'addOn_FiveDigit_selectNumberset'
-                            + names.map(n=>`_${n}`).join('')
-        ;
-      for(let i=digits-1;i<size;i++)
-          allItems.push('@numbers');
-      let trailingInputSeq = allItems.slice(1).map(n=>`${n}'`).join(' ');
-      return `sub${backtrack ? ' '+backtrack+' ': ''} ${allItems[0]}' `
-           + `lookup ${lookupName} ${trailingInputSeq};`;
-  }
 
-  function* partition_subs(size, ...partitions) {
-      // let firstPartition = true;
-      //
-      // //first partition
-      // // makeSub already covers this
-      // `sub ${name1}' lookup addOn_FiveDigit_numberset_${numberset} ${name2}' ${name3}' ${name4}' ${name5}';`
-      //
-      // // in between partitions all names known towards the end must be included
-      // `sub ${name1}' lookup  addOn_FiveDigit_selectNumberset_${name1}_${name2}_${name3}_${name4} ${name2}' ${name3}' ${name4}' @numbers';`;
-      //
-      // 2 2 1
-      // // last partition // general (most important, add to the prefix/backtrack: " add_on.guard.fiveDigit "
-      // // if the first partition is the last partition e.g. size = 5, partitions = [5]
-      // // makeSub must include that backtrack!
-      // `sub add_on.guard.fiveDigit @numbers' lookup ${previous_lookup_name} @numbers' @numbers' @numbers' @numbers' @numbers';`
-      // // last partition, size two actual
-      // `sub add_on.guard.fiveDigit ${name1}' lookup addOn_FiveDigit_selectNumberset_${name1}_${name2} ${name2}' @numbers' @numbers' @numbers';` + '\n';
+    yield `
+feature ${featureTag}{
+    # STEP 2: Multiply the result of STEP 1 by 3 keep modulo 10
+    # => add_on.guard.fiveDigit @numBelow[STEP 2] @numbers ...` + '\n';
+    for(let i=0;i<10;i++) {
+        let d = DIGITS[i]
+          , r = DIGITS[(i * 3) % 10]
+          ;
+        yield `    sub add_on.guard.fiveDigit below.${d}' lookup result_${r};` + '\n';
+    }
+    yield`}${featureTag};` + '\n';
 
-      let digitsConsumed = 0;
-      for(let partition of partitions) {
-          let digitsToConsume = Math.max(0, size - digitsConsumed)
-            , digitsConsuming = partition + digitsConsumed
-            , backtrack = null
-            ;
-          if(digitsToConsume === 0) {
-              // last partition, add backtrack to select correct context
-              backtrack = 'add_on.guard.fiveDigit';
-          }
-          let makeSubs = (digitsConsumed === 0)
-                  ? makeSubNumberset // (num, backtrack)
-                  : (num, backtrack)=>makeSubPartion(size, digitsToConsume, num, backtrack)
-                  ;
-          for(let lnum=0, lend=10**size, lstep=10**digitsConsuming;lnum<lend;lnum+=lstep) {
-              let names = getDigitNames(lnum, size).slice(0, size-digitsConsuming)
-                , lookupName = 'addOn_FiveDigit_selectNumberset'
-                                        + names.map(n=>`_${n}`).join('')
-                ;
-              console.log(`lnum=${lnum}, lend=${lend}, lstep=${lstep}: ${lookupName}: partition ${partition} digitsToConsume ${digitsToConsume} digitsConsumed ${digitsConsumed}`);
-              yield '\n' + `lookup ${lookupName}{` + '\n';
-              for(let num=lnum, end=lnum+lstep, step=10**digitsConsumed, count=0; num<end;num+=step, count++) {
-                  // if(num <= lnum + 12 * step)
-                  //   console.log(num, digitsConsumed, digitsToConsume, `end ${end} step ${step}`, '::', makeSubs(num, backtrack));
-                  // else
-                  //   break;
 
-                  // subtable breaks, seems not to change anything:
-                  // if(count && count % 100 === 0)
-                  //      yield `    subtable;` + '\n';
-                  yield `    ${makeSubs(num, backtrack)}` + '\n';
-              }
-              yield  `}${lookupName};` + '\n';
-          }
+    yield `
+feature ${featureTag}{
+    # STEP 3: Sum Positions two and four keep modulo 10
+    # inserts the result right after add_on.guard.fiveDigit
+    # => add_on.guard.fiveDigit @numBelow[STEP 3] @numBelow[STEP 2] @numbers ...` + '\n';
+    for(let i=0;i<10;i++) {
+        for(let j=0;j<10;j++) {
+            let d1 = DIGITS[i]
+              , d2 = DIGITS[j]
+              , r = DIGITS[(i + j) % 10]
+              ;
+            yield `    sub add_on.guard.fiveDigit' lookup result_${r} @numBelow @numbers ${d1} @numbers ${d2};` + '\n';
+        }
+    }
+    yield`}${featureTag};` + '\n';
 
-          digitsConsumed += partition;
-      }
-  }
+    yield `
+feature ${featureTag}{
+    # STEP 4: multiply the result of STEP 3 by 9 keep modulo 10
+    # => add_on.guard.fiveDigit @numBelow[STEP 4] @numBelow[STEP 2] @numbers ...` + '\n';
+    for(let i=0;i<10;i++) {
+        let d = DIGITS[i]
+          , r = DIGITS[(i * 9) % 10]
+          ;
+        yield `    sub add_on.guard.fiveDigit below.${d}' lookup result_${r} @numBelow @numbers;` + '\n';
+    }
+    yield`}${featureTag};` + '\n';
 
-  yield* partition_subs(5, 1, 1, 1, 1, 1)//, 2, 1, 2);
-})()
+    yield `
+lookup fiveDigit_addOn_checksum{
+    # STEP 5 and STEP 6 checksum!
+    # Sum the results of steps 2 and 4 keep modulo 10
+    # => add_on.guard.fiveDigit @numBelow[CHECKSUM] @numbers ...` + '\n';
+    for(let i=0;i<10;i++) {
+        for(let j=0;j<10;j++) {
+            let d1 = DIGITS[i]
+              , d2 = DIGITS[j]
+              , r = DIGITS[(i + j) % 10]
+              ;
+            yield `    sub below.${d1} below.${d2} by below.${r};` + '\n';
+        }
+    }
+    yield`}fiveDigit_addOn_checksum;` + '\n';
+
+    yield `
+feature ${featureTag} {
+    # See STEP 5 above.
+    # => add_on.guard.fiveDigit @numBelow[CHECKSUM] @numbers ...
+    sub add_on.guard.fiveDigit @numBelow' lookup fiveDigit_addOn_checksum @numBelow';
+}${featureTag};` + '\n';
+
+    yield `
+feature ${featureTag}{
+    # encode the numbers with the right numbersets addOn_setA or addOn_setB` + '\n';
+    let numbersets = ['BBAAA', 'BABAA', 'BAABA', 'BAAAB', 'ABBAA'
+                    , 'AABBA', 'AAABB', 'ABABA', 'ABAAB', 'AABAB'];
+    for(let i=0; i<10; i++) {
+        let name=DIGITS[i]
+          , numberset=numbersets[i]
+          ;
+
+        yield `    sub
+        add_on.guard.fiveDigit
+        below.${name}
+        @numbers' lookup addOn_set${numberset[0]}
+        @numbers' lookup addOn_set${numberset[1]}
+        @numbers' lookup addOn_set${numberset[2]}
+        @numbers' lookup addOn_set${numberset[3]}
+        @numbers' lookup addOn_set${numberset[4]}
+        ;` + '\n';
+    }
+    yield`}${featureTag};` + '\n';
+}())
 ,`
 
-
-
-
+# clean up: remove the @numBelow[CHECKSUM] from the result
 feature ${featureTag} {
-    lookup addOn_FiveDigit_selectNumberset;
+  sub add_on.guard.fiveDigit @numBelow by add_on.guard.fiveDigit;
 }${featureTag};
+
 
 # finish the addon by inserting the delineator between all number symbols
 lookup addOnNumbersAB_insert_delineator{
