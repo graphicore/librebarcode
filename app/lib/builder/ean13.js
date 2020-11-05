@@ -37,7 +37,7 @@ define([
             // * name/id unique!
             // * [groups]: used to select groups of glyphs
             // * targetChars ['c', 'h', 'a', 'r', 's'] => maybe needs to be done differently here
-            [[7], 'space', [], [' ']]//
+            [[7], 'space', [], [' ']] // 7 * unit ... drawn as a space
         ]
     };
     // ['one', 'two', 'three', ...]
@@ -119,8 +119,9 @@ define([
 
     var EAN13Glyph = (function(Parent) {
     // "use strict";
-    function EAN13Glyph(parameters, fontBelow, drawData, name, groups, targetChars=[]) {
+    function EAN13Glyph(parameters, getGlyphByName, fontBelow, drawData, name, groups, targetChars=[]) {
         Parent.call(this, parameters, name, targetChars, false/*textBelowFlag*/);
+        this.getGlyphByName = getGlyphByName;
         this.fontBelow = fontBelow;
         this.drawData = drawData;
         this.groups = new Set(groups);
@@ -136,8 +137,16 @@ define([
                 if(this.drawData.fromFont)
                     return this._drawPointsFromFont();
 
-                if(Array.isArray(this.drawData))
-                    return this.drawData.reduce((a, b)=>a + b) * this._parameters.unit;
+                if(Array.isArray(this.drawData)) {
+                    let width = this.drawData.reduce((a, b)=>a + b) * this._parameters.unit;
+                    if (this.hasGroups('add_on.guard')) {
+                        // is reflected in the draw function as well
+                        // because this.getGlyphByName('space').width is
+                        // the advance width.
+                        width += this.getGlyphByName('space').width;
+                    }
+                    return width;
+                }
             }
           , enumerable: true
         }
@@ -193,12 +202,9 @@ define([
 
         if (this.hasGroups('add_on.guard')) {
             // Add a quiet-zone between the barcode and the add-on
-            // FIXME: the quiet zone should probably be established by
-            // the closing normal/special guards
+            // Change of glyph width is done accordingly in the width getter.
             // right === advance
-
-            // doesn't change glyph width!
-            //right = 400;
+            right = this.getGlyphByName('space').width;
         }
 
         for(let [i, modules] of pattern.entries()) {
@@ -314,7 +320,7 @@ define([
         Parent.call(this, fontInfo, fontBelow);
         // validation
         this.parameters = this._validateParameters(userParameters);
-        this._initGlyphs(fontBelow);
+        this._initGlyphs(name=>this.getGlyphByName(name), fontBelow);
     }
 
     var _p = EAN13Builder.prototype = Object.create(Parent.prototype);
@@ -1064,13 +1070,6 @@ feature ${featureTag} {
         @addOnSetAB
         ;
 }${featureTag};
-
-
-# hack to ensure quiet zone
-feature ${featureTag} {
-    pos [add_on.guard.twoDigit add_on.guard.fiveDigit] <200 0 200 0>;
-}${featureTag};
-
 `
         ];
         return feature.join('');

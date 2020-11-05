@@ -236,6 +236,7 @@ define([
         this.glyphs = [];
         this.parameters = null;
         this._char2Glyph = null;
+        this._name2Glyph = null;
     }
 
     var _p = AbstractBarcodeBuilder.prototype;
@@ -246,6 +247,21 @@ define([
             let glyph = new this.BarcodeGlyphType(this.parameters, ...injectedArgs, ...args);
             this.glyphs.push(glyph);
         }
+    };
+
+    _p.getGlyphByName = function(name){
+        // lazily create this._name2Glyph
+        if(this._name2Glyph === null) {
+            this._name2Glyph = new Map();
+            for(let glyph of this.glyphs) {
+                if (this._name2Glyph.has(glyph.name))
+                    throw new KeyError(`${glyph.name} already defined.`);
+                this._name2Glyph.set(glyph.name, glyph);
+            }
+        }
+        if(!this._name2Glyph.has(name))
+            throw new KeyError(`Glyph "${name}" not found in ${this.constructor.name}`);
+        return this._name2Glyph.get(name);
     };
 
     _p.getGlyphByChar = function(char) {
