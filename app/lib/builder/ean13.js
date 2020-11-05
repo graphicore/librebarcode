@@ -60,7 +60,7 @@ define([
           for(let [, pattern, name, groups] of data.symbolsBase) {
               data.glyphs.push([
                   patternTransforms[setName](pattern)
-                , `${setName}.${name}` // e.g. setA.three
+                , `${name}.${setName}` // e.g. three.setA
                 , [setName, 'main', ...groups]
                 , []
               ]);
@@ -69,8 +69,8 @@ define([
                   continue;
               data.glyphs.push([
                   patternTransforms[setName](pattern)
-                , `${setName}.addOn.${name}` // e.g. setA.addOn.three
-                , [setName, 'add_on', ...groups]
+                , `${name}.addOn.${setName}` // e.g. three.addOn.setA
+                , [setName, 'addOn', ...groups]
                 , []
               ]);
           }
@@ -94,7 +94,7 @@ define([
                // Pattern: copy a number glyph from the below-font
                // use the char code
                {fromFont: true, charCode: charCode}
-             , `below.${name}`
+             , `${name}.below`
              , ['below', 'number']
              , []
           ]);
@@ -111,10 +111,10 @@ define([
             // Special guard bar pattern
           , [[1, 1, 1, 1, 1, 1], 'guard.special', ['auxiliary', 'main', 'triggerAddOn'], []]
             // Add-on guard bar pattern
-          , [[0, 1, 1, 2], 'add_on.guard.twoDigit', ['auxiliary', 'add_on', 'add_on.guard'], []]
-          , [[0, 1, 1, 2], 'add_on.guard.fiveDigit', ['auxiliary', 'add_on', 'add_on.guard'], []]
+          , [[0, 1, 1, 2], 'addOn.guard.twoDigit', ['auxiliary', 'addOn', 'addOn.guard'], []]
+          , [[0, 1, 1, 2], 'addOn.guard.fiveDigit', ['auxiliary', 'addOn', 'addOn.guard'], []]
             // Add-on delineator
-          , [[1, 1], 'add_on.delineator', ['auxiliary', 'add_on'], []]
+          , [[1, 1], 'addOn.delineator', ['auxiliary', 'addOn'], []]
     ]);
 
     var EAN13Glyph = (function(Parent) {
@@ -139,7 +139,7 @@ define([
 
                 if(Array.isArray(this.drawData)) {
                     let width = this.drawData.reduce((a, b)=>a + b) * this._parameters.unit;
-                    if (this.hasGroups('add_on.guard')) {
+                    if (this.hasGroups('addOn.guard')) {
                         // is reflected in the draw function as well
                         // because this.getGlyphByName('space').width is
                         // the advance width.
@@ -192,15 +192,15 @@ define([
         if(this.hasGroups('auxiliary', 'main')
                 // the add-on symbols are at the bottom aligned with
                 // the guard patterns
-                || this.hasGroups('add_on')) {
+                || this.hasGroups('addOn')) {
             bottom -= parameters.auxiliaryDrop;
         }
-        if (this.hasGroups('add_on') /* auxiliary and main */ ) {
+        if (this.hasGroups('addOn') /* auxiliary and main */ ) {
             // make room for the text **above**
             top -= this._parameters.fontBelowHeight + this._parameters.fontBelowPadding;
         }
 
-        if (this.hasGroups('add_on.guard')) {
+        if (this.hasGroups('addOn.guard')) {
             // Add a quiet-zone between the barcode and the add-on
             // Change of glyph width is done accordingly in the width getter.
             // right === advance
@@ -249,7 +249,7 @@ define([
     // doubles to only calculate width if no pen is given
     _p._drawPointsFromFont = function(pen=null) {
         var transformation = null;
-        if(this.name.startsWith('below.')) {
+        if(this.name.endsWith('.below')) {
             let scale = this._getFontBelowScale();
             transformation = new Transform()
                 .translate(0, -(this._parameters.fontBelowHeight + this._parameters.fontBelowPadding))
@@ -277,13 +277,13 @@ define([
 
             // add font below ...
             if(this.hasGroups('symbol', 'main')) {
-                let name = `below.${this.name.slice(this.name.indexOf('.')+1)}`;
+                let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`;
                 pen.addComponent(name, new Transform());
             }
 
             // add font above ...
-            if(this.hasGroups('symbol', 'add_on')) {
-                let name = `below.${this.name.slice(this.name.lastIndexOf('.')+1)}`
+            if(this.hasGroups('symbol', 'addOn')) {
+                let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`
                   , transformation =  new Transform().translate(0,
                         // Glyph is at -(this._parameters.fontBelowHeight
                         //                  + this._parameters.fontBelowPadding)
@@ -445,16 +445,16 @@ feature ${featureTag} {
 # the first number in ean 13 AND the human readable inital number,
 # that has
 lookup ean13_start {
-    sub zero by below.zero guard.normal;
-    sub one by below.one guard.normal;
-    sub two by below.two guard.normal;
-    sub three by below.three guard.normal;
-    sub four by below.four guard.normal;
-    sub five by below.five guard.normal;
-    sub six by below.six guard.normal;
-    sub seven by below.seven guard.normal;
-    sub eight by below.eight guard.normal;
-    sub nine by below.nine guard.normal;
+    sub zero by zero.below guard.normal;
+    sub one by one.below guard.normal;
+    sub two by two.below guard.normal;
+    sub three by three.below guard.normal;
+    sub four by four.below guard.normal;
+    sub five by five.below guard.normal;
+    sub six by six.below guard.normal;
+    sub seven by seven.below guard.normal;
+    sub eight by eight.below guard.normal;
+    sub nine by nine.below guard.normal;
 }ean13_start;
 
 feature ${featureTag} {
@@ -495,7 +495,7 @@ lookup ean13_setC {
 # variable parity mix of number sets A and B for
 # the six symbol characters in the left half of the symbol.
 feature ${featureTag} {
-   sub below.zero
+   sub zero.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setA
@@ -505,7 +505,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setA
        guard.centre
        ;
-   sub below.one
+   sub one.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setA
@@ -515,7 +515,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setB
        guard.centre
        ;
-   sub below.two
+   sub two.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setA
@@ -525,7 +525,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setA
        guard.centre
        ;
-   sub below.three
+   sub three.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setA
@@ -535,7 +535,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setA
        guard.centre
        ;
-   sub below.four
+   sub four.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setB
@@ -545,7 +545,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setB
        guard.centre
        ;
-   sub below.five
+   sub five.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setB
@@ -555,7 +555,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setB
        guard.centre
        ;
-   sub below.six
+   sub six.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setB
@@ -565,7 +565,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setA
        guard.centre
        ;
-   sub below.seven
+   sub seven.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setB
@@ -575,7 +575,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setB
        guard.centre
        ;
-   sub below.eight
+   sub eight.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setB
@@ -585,7 +585,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setA
        guard.centre
        ;
-   sub below.nine
+   sub nine.below
        guard.normal
        @numbers' lookup ean13_setA
        @numbers' lookup ean13_setB
@@ -716,13 +716,13 @@ feature ${featureTag} {
 @endTriggerAddOn = [${ this.getGlyphsByGroup('triggerAddOn').map(g=>g.name).join(' ') }];
 
 lookup addOn_start_five {
-    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn add_on.guard.fiveDigit;
-    sub guard.special by guard.special add_on.guard.fiveDigit;
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.fiveDigit;
+    sub guard.special by guard.special addOn.guard.fiveDigit;
 }addOn_start_five;
 
 lookup addOn_start_two {
-    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn add_on.guard.twoDigit;
-    sub guard.special by guard.special add_on.guard.twoDigit;
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.twoDigit;
+    sub guard.special by guard.special addOn.guard.twoDigit;
 }addOn_start_two;
 
 feature ${featureTag} {
@@ -741,8 +741,8 @@ feature ${featureTag} {
       ;
 }${featureTag};
 
-@addOnSetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'add_on').map(g=>g.name).join(' ')}];
-@addOnSetB = [${ this.getGlyphsByGroup('symbol', 'setB', 'add_on').map(g=>g.name).join(' ')}];
+@addOnSetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'addOn').map(g=>g.name).join(' ')}];
+@addOnSetB = [${ this.getGlyphsByGroup('symbol', 'setB', 'addOn').map(g=>g.name).join(' ')}];
 
 # change a @numbers to @addOnSetA
 lookup addOn_setA{
@@ -756,20 +756,20 @@ lookup addOn_setB{
 `,
 ...(()=>{
   // since this doesn't work:
-  //    sub @numbers by add_on.delineator @addOnSetA;
+  //    sub @numbers by addOn.delineator @addOnSetA;
   function* makeSubs(setName) {
     for(let name of DIGITS)
-      // sub one by add_on.delineator one.
-      yield `    sub ${name} by add_on.delineator ${setName}.addOn.${name};` + '\n';
+      // sub one by addOn.delineator one.
+      yield `    sub ${name} by addOn.delineator ${name}.addOn.${setName};` + '\n';
   }
   return [`
-# change a @numbers to add_on.delineator @addOnSetA
+# change a @numbers to addOn.delineator @addOnSetA
 lookup addOn_setA_right{
 `,
   ...makeSubs('setA'),
 `}addOn_setA_right;
 
-# change a @numbers to add_on.delineator @addOnSetB
+# change a @numbers to addOn.delineator @addOnSetB
 lookup addOn_setB_right{
 `,
 ...makeSubs('setB'),
@@ -827,7 +827,7 @@ feature ${featureTag} {
 
         //sub zero' one' lookup addOn_twoDigit_remainOne
         // sub zero' five' lookup addOn_twoDigit_remainOne
-        yield `    sub add_on.guard.twoDigit ${left}' lookup ${lookup} ${right}';` + '\n';
+        yield `    sub addOn.guard.twoDigit ${left}' lookup ${lookup} ${right}';` + '\n';
 
     }
 }()),
@@ -876,10 +876,10 @@ feature ${featureTag} {
 lookup result_${name} {
     # GSUB LookupType 2] Multiple substitution -> insert an additional number
     # as result after the guard
-    sub add_on.guard.fiveDigit by add_on.guard.fiveDigit below.${name};
+    sub addOn.guard.fiveDigit by addOn.guard.fiveDigit ${name}.below;
     # [GSUB LookupType 1] Single substitution -> replace an existing numBelow
     # with the result
-    sub @numBelow by below.${name};
+    sub @numBelow by ${name}.below;
 }result_${name};` + '\n';
     }
 
@@ -889,15 +889,15 @@ lookup result_${name} {
 # using the below digits to store calculation results
 feature ${featureTag}{
     # STEP 1 A: Sum the digits in Positions one and three, keep modulo 10.
-    # inserts the result right after add_on.guard.fiveDigit
-    # => add_on.guard.fiveDigit @numBelow[STEP 1 A] @numbers ...` + '\n';
+    # inserts the result right after addOn.guard.fiveDigit
+    # => addOn.guard.fiveDigit @numBelow[STEP 1 A] @numbers ...` + '\n';
     for(let i=0;i<10;i++) {
         for(let j=0;j<10;j++) {
             let d1 = DIGITS[i]
               , d2 = DIGITS[j]
               , r = DIGITS[(i + j) % 10]
               ;
-            yield `    sub add_on.guard.fiveDigit' lookup result_${r} ${d1} @numbers ${d2};` + '\n';
+            yield `    sub addOn.guard.fiveDigit' lookup result_${r} ${d1} @numbers ${d2};` + '\n';
         }
     }
     yield`}${featureTag};` + '\n';
@@ -906,14 +906,14 @@ feature ${featureTag}{
     yield `
 feature ${featureTag}{
     # STEP 1 B: Sum the digits in Positions STEP 1 A (one + three) and five, keep modulo 10.
-    # => add_on.guard.fiveDigit @numBelow[STEP 1 B] @numbers ...` + '\n';
+    # => addOn.guard.fiveDigit @numBelow[STEP 1 B] @numbers ...` + '\n';
     for(let i=0;i<10;i++) {
         for(let j=0;j<10;j++) {
             let d1 = DIGITS[i]
               , d2 = DIGITS[j]
               , r = DIGITS[(i + j) % 10]
               ;
-            yield `    sub add_on.guard.fiveDigit below.${d1}' lookup result_${r} @numbers @numbers @numbers @numbers ${d2};` + '\n';
+            yield `    sub addOn.guard.fiveDigit ${d1}.below' lookup result_${r} @numbers @numbers @numbers @numbers ${d2};` + '\n';
         }
     }
     yield`}${featureTag};` + '\n';
@@ -922,12 +922,12 @@ feature ${featureTag}{
     yield `
 feature ${featureTag}{
     # STEP 2: Multiply the result of STEP 1 by 3 keep modulo 10
-    # => add_on.guard.fiveDigit @numBelow[STEP 2] @numbers ...` + '\n';
+    # => addOn.guard.fiveDigit @numBelow[STEP 2] @numbers ...` + '\n';
     for(let i=0;i<10;i++) {
         let d = DIGITS[i]
           , r = DIGITS[(i * 3) % 10]
           ;
-        yield `    sub add_on.guard.fiveDigit below.${d}' lookup result_${r};` + '\n';
+        yield `    sub addOn.guard.fiveDigit ${d}.below' lookup result_${r};` + '\n';
     }
     yield`}${featureTag};` + '\n';
 
@@ -935,15 +935,15 @@ feature ${featureTag}{
     yield `
 feature ${featureTag}{
     # STEP 3: Sum Positions two and four keep modulo 10
-    # inserts the result right after add_on.guard.fiveDigit
-    # => add_on.guard.fiveDigit @numBelow[STEP 3] @numBelow[STEP 2] @numbers ...` + '\n';
+    # inserts the result right after addOn.guard.fiveDigit
+    # => addOn.guard.fiveDigit @numBelow[STEP 3] @numBelow[STEP 2] @numbers ...` + '\n';
     for(let i=0;i<10;i++) {
         for(let j=0;j<10;j++) {
             let d1 = DIGITS[i]
               , d2 = DIGITS[j]
               , r = DIGITS[(i + j) % 10]
               ;
-            yield `    sub add_on.guard.fiveDigit' lookup result_${r} @numBelow @numbers ${d1} @numbers ${d2};` + '\n';
+            yield `    sub addOn.guard.fiveDigit' lookup result_${r} @numBelow @numbers ${d1} @numbers ${d2};` + '\n';
         }
     }
     yield`}${featureTag};` + '\n';
@@ -951,12 +951,12 @@ feature ${featureTag}{
     yield `
 feature ${featureTag}{
     # STEP 4: multiply the result of STEP 3 by 9 keep modulo 10
-    # => add_on.guard.fiveDigit @numBelow[STEP 4] @numBelow[STEP 2] @numbers ...` + '\n';
+    # => addOn.guard.fiveDigit @numBelow[STEP 4] @numBelow[STEP 2] @numbers ...` + '\n';
     for(let i=0;i<10;i++) {
         let d = DIGITS[i]
           , r = DIGITS[(i * 9) % 10]
           ;
-        yield `    sub add_on.guard.fiveDigit below.${d}' lookup result_${r} @numBelow @numbers;` + '\n';
+        yield `    sub addOn.guard.fiveDigit ${d}.below' lookup result_${r} @numBelow @numbers;` + '\n';
     }
     yield`}${featureTag};` + '\n';
 
@@ -964,14 +964,14 @@ feature ${featureTag}{
 lookup fiveDigit_addOn_checksum{
     # STEP 5 and STEP 6 checksum!
     # Sum the results of steps 2 and 4 keep modulo 10
-    # => add_on.guard.fiveDigit @numBelow[CHECKSUM] @numbers ...` + '\n';
+    # => addOn.guard.fiveDigit @numBelow[CHECKSUM] @numbers ...` + '\n';
     for(let i=0;i<10;i++) {
         for(let j=0;j<10;j++) {
             let d1 = DIGITS[i]
               , d2 = DIGITS[j]
               , r = DIGITS[(i + j) % 10]
               ;
-            yield `    sub below.${d1} below.${d2} by below.${r};` + '\n';
+            yield `    sub ${d1}.below ${d2}.below by ${r}.below;` + '\n';
         }
     }
     yield`}fiveDigit_addOn_checksum;` + '\n';
@@ -979,8 +979,8 @@ lookup fiveDigit_addOn_checksum{
     yield `
 feature ${featureTag} {
     # See STEP 5 above.
-    # => add_on.guard.fiveDigit @numBelow[CHECKSUM] @numbers ...
-    sub add_on.guard.fiveDigit @numBelow' lookup fiveDigit_addOn_checksum @numBelow';
+    # => addOn.guard.fiveDigit @numBelow[CHECKSUM] @numbers ...
+    sub addOn.guard.fiveDigit @numBelow' lookup fiveDigit_addOn_checksum @numBelow';
 }${featureTag};` + '\n';
 
     yield `
@@ -994,8 +994,8 @@ feature ${featureTag}{
           ;
 
         yield `    sub
-        add_on.guard.fiveDigit
-        below.${name}
+        addOn.guard.fiveDigit
+        ${name}.below
         @numbers' lookup addOn_set${numberset[0]}
         @numbers' lookup addOn_set${numberset[1]}
         @numbers' lookup addOn_set${numberset[2]}
@@ -1009,24 +1009,24 @@ feature ${featureTag}{
 
 # clean up: remove the @numBelow[CHECKSUM] from the result
 feature ${featureTag} {
-  sub add_on.guard.fiveDigit @numBelow by add_on.guard.fiveDigit;
+  sub addOn.guard.fiveDigit @numBelow by addOn.guard.fiveDigit;
 }${featureTag};
 
 
 # finish the addon by inserting the delineator between all number symbols
 lookup addOnNumbersAB_insert_delineator{
 `, ...(function*(glyphs){
-      // contains setA and setB add_on symbols
+      // contains setA and setB addOn symbols
       for(let glyph of glyphs)
-          yield `    sub ${glyph.name} by add_on.delineator ${glyph.name};` + '\n';
-      }(this.getGlyphsByGroup('symbol', 'add_on')))
+          yield `    sub ${glyph.name} by addOn.delineator ${glyph.name};` + '\n';
+      }(this.getGlyphsByGroup('symbol', 'addOn')))
     ,`
 }addOnNumbersAB_insert_delineator;
 
-@addOnSetAB = [${ this.getGlyphsByGroup('symbol', 'add_on').map(g=>g.name).join(' ') }];
+@addOnSetAB = [${ this.getGlyphsByGroup('symbol', 'addOn').map(g=>g.name).join(' ') }];
 
 feature ${featureTag} {
-    sub add_on.guard.fiveDigit
+    sub addOn.guard.fiveDigit
         @addOnSetAB
         @addOnSetAB
         @addOnSetAB
@@ -1036,37 +1036,37 @@ feature ${featureTag} {
 }${featureTag};
 
 feature ${featureTag} {
-    sub add_on.guard.fiveDigit
+    sub addOn.guard.fiveDigit
         @addOnSetAB
         @addOnSetAB
         @addOnSetAB
         @addOnSetAB' lookup addOnNumbersAB_insert_delineator
-        add_on.delineator
+        addOn.delineator
         @addOnSetAB
         ;
 }${featureTag};
 
 feature ${featureTag} {
-    sub add_on.guard.fiveDigit
+    sub addOn.guard.fiveDigit
         @addOnSetAB
         @addOnSetAB
         @addOnSetAB' lookup addOnNumbersAB_insert_delineator
-        add_on.delineator
+        addOn.delineator
         @addOnSetAB
-        add_on.delineator
+        addOn.delineator
         @addOnSetAB
         ;
 }${featureTag};
 
 feature ${featureTag} {
-    sub add_on.guard.fiveDigit
+    sub addOn.guard.fiveDigit
         @addOnSetAB
         @addOnSetAB' lookup addOnNumbersAB_insert_delineator
-        add_on.delineator
+        addOn.delineator
         @addOnSetAB
-        add_on.delineator
+        addOn.delineator
         @addOnSetAB
-        add_on.delineator
+        addOn.delineator
         @addOnSetAB
         ;
 }${featureTag};
