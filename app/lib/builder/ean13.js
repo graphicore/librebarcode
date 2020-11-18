@@ -390,6 +390,23 @@ lookup ean13_stop {
     sub nine by nine guard.normal.triggerAddOn;
 }ean13_stop;
 
+lookup upcA_stop {
+`
+, ...(function*(){
+    for(let name of DIGITS)
+        // FIXME: for AGL type of glyph name to input string recovery,
+        // either the setC pattern or the below glyph should not start
+        // with the number name.
+        yield `    sub ${name} by ${name}.upcA.setC guard.normal.triggerAddOn ${name}.below;` + '\n';
+
+  })()
+, `
+}upcA_stop;
+
+# substitute one to many to insert the stop/end guard symbol after
+# the last number in ean 8, could reuse the lookup ean13_stop BUT
+# EAN-13 has a special named version of guard.normal (guard.normal.triggerAddOn)
+# to allow triggering the add ons which ean-8 doesn't support.
 lookup ean8_stop {
     sub zero by zero guard.normal;
     sub one by one guard.normal;
@@ -403,22 +420,67 @@ lookup ean8_stop {
     sub nine by nine guard.normal;
 }ean8_stop;
 
+# In order to be able to distinguish which type of code we want to build
+# we distinguish between a different number of input @numbers and initially
+# mark them with the stop symbol at the right place. The following features
+# and substitutions can pick up savely from there.
+#
+# Luckily most combinations can be decided without colisions. UPC-E is the
+# exception, but that will be handled with a special marker anyways!
+#
+#  Column AA: with explicit check sum
+#  Column BB: if we would calculate the checksum (last digit) on the fly
+#             input length could be reduced by 1. (But that's fairly complex.)
+
+#  COMBINATIONS       AA   BB
+# ----------------------------
+#  EAN-13 + addOn-5   18   17
+#  UPC-A + addOn-5    17   16
+#  (UPC-E + addOn-5   17   16)
+#  EAN-13 + addOn-2   15   14
+#  UPC-A + addOn-2    14   13
+#  (UPC-E + addOn-2   14   13)
+#  EAN-13             13   12
+#  UPC-A              12   11
+#  (UPC-E             12   11)
+#  EAN-8               8    7
+
 feature ${featureTag} {
-   sub @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers' lookup ean13_stop
-       ;
+`, ...(function*(){
+    var repeat = (str, l)=>{
+        let res = [];
+        for(let i=0; i<l; i++) res.push(str);
+        return res.join('\n       ');
+    };
+    // EAN-13 + addOn-5
+    yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
+       ${repeat('@numbers', 5)}
+       ;` + '\n';
+    // UPC-A + addOn-5
+    yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
+       ${repeat('@numbers', 5)}
+       ;` + '\n';
+    // EAN-13 + addOn-2
+    yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
+       ${repeat('@numbers', 2)}
+       ;` + '\n';
+    // UPC-A + addOn-2
+    yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
+       ${repeat('@numbers', 2)}
+       ;` + '\n';
+    // EAN-13
+    yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
+       ;` + '\n';
+    // UPC-A
+    yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
+       ;` + '\n';
+    // EAN-8
+    yield `   sub ${repeat("@numbers'", 8)} lookup ean8_stop
+       ;` + '\n';
+  })()
+,`
 }${featureTag};
+
 
 # substitute one to many to insert the centre guard symbol after
 # the sixth (actually seventh before the first is removed) number in ean 13
@@ -636,35 +698,6 @@ feature ${featureTag} {
 @upcASetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'upcA').map(g=>g.name).join(' ')}];
 @upcASetC = [${ this.getGlyphsByGroup('symbol', 'setC', 'upcA').map(g=>g.name).join(' ')}];
 
-lookup upcA_stop {
-`
-, ...(function*(){
-    for(let name of DIGITS)
-        // FIXME: for AGL type of glyph name to input string recovery,
-        // either the setC pattern or the below glyph should not start
-        // with the number name.
-        yield `    sub ${name} by ${name}.upcA.setC guard.normal.triggerAddOn ${name}.below;` + '\n';
-
-  })()
-, `
-}upcA_stop;
-
-feature ${featureTag} {
-   sub @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers' lookup upcA_stop
-       ;
-}${featureTag};
-
 feature ${featureTag} {
    sub @numbers
        @numbers
@@ -745,22 +778,6 @@ feature ${featureTag} {
 
 ########
 ## EAN-8
-
-# substitute one to many to insert the stop/end guard symbol after
-# the last number in ean 8, could reuse the lookup ean13_stop BUT
-# EAN-13 has a special named version of guard.normal (guard.normal.triggerAddOn)
-# to allow triggering the add ons which ean-8 doesn't have.
-feature ${featureTag} {
-   sub @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers
-       @numbers' lookup ean8_stop
-       ;
-}${featureTag};
 
 # substitute one to many to insert the centre guard symbol after
 # the sixth number in ean 8, reuses the lookup ean13_insert_center
@@ -850,15 +867,32 @@ feature ${featureTag} {
 lookup addOn_start_five {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.fiveDigit;
     sub guard.special by guard.special addOn.guard.fiveDigit;
+    `,...(function*(){
+    for(let name of DIGITS)
+        yield `    sub ${name}.below by ${name}.below addOn.guard.fiveDigit;` + '\n';
+})()
+,`
 }addOn_start_five;
 
 lookup addOn_start_two {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.twoDigit;
     sub guard.special by guard.special addOn.guard.twoDigit;
-}addOn_start_two;
+`,...(function*(){
+    for(let name of DIGITS)
+        yield `    sub ${name}.below by ${name}.below addOn.guard.twoDigit;` + '\n';
+})()
+,`}addOn_start_two;
 
 feature ${featureTag} {
   # five digit
+  sub guard.normal.triggerAddOn'
+      @numBelow' lookup addOn_start_five
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      ;
   sub @endTriggerAddOn' lookup addOn_start_five
       @numbers
       @numbers
@@ -867,6 +901,11 @@ feature ${featureTag} {
       @numbers
       ;
   # two digit
+  sub guard.normal.triggerAddOn'
+      @numBelow' lookup addOn_start_two
+      @numbers
+      @numbers
+      ;
   sub @endTriggerAddOn' lookup addOn_start_two
       @numbers
       @numbers
