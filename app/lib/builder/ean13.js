@@ -64,6 +64,15 @@ define([
                 , [setName, 'main', ...groups]
                 , []
               ]);
+
+              // special layout version for upc-A first and last pattern
+              data.glyphs.push([
+                  patternTransforms[setName](pattern)
+                , `${name}.upcA.${setName}` // e.g. three.upcA.setA
+                , [setName, 'upcA', ...groups]
+                , []
+              ]);
+
               // only setA and setB are used in add-ons
               if(setName === 'setC')
                   continue;
@@ -192,7 +201,10 @@ define([
         if(this.hasGroups('auxiliary', 'main')
                 // the add-on symbols are at the bottom aligned with
                 // the guard patterns
-                || this.hasGroups('addOn')) {
+                || this.hasGroups('addOn')
+                // the first and last digit symbol of UPC-A is aligned
+                // with the guard patterns
+                || this.hasGroups('symbol', 'upcA')) {
             bottom -= parameters.auxiliaryDrop;
         }
         if (this.hasGroups('addOn') /* auxiliary and main */ ) {
@@ -608,6 +620,126 @@ feature ${featureTag} {
        @numbers' lookup ean13_setC
        @numbers' lookup ean13_setC
        guard.normal.triggerAddOn
+       ;
+}${featureTag};
+
+########
+## UPC-A
+
+# This is very similar to EAN-13 but it triggers at only 12 digits and
+# the first six digits are always SET-A, exactly as EAN-13 when starting
+# with a zero. Also, the layout is a bit different, as the first and last
+# digit codes are like the guard patterns elongated and the digits are used
+# outside of the code to establish the quiet zones.
+
+
+@upcASetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'upcA').map(g=>g.name).join(' ')}];
+@upcASetC = [${ this.getGlyphsByGroup('symbol', 'setC', 'upcA').map(g=>g.name).join(' ')}];
+
+lookup upcA_stop {
+`
+, ...(function*(){
+    for(let name of DIGITS)
+        // FIXME: for AGL type of glyph name to input string recovery,
+        // either the setC pattern or the below glyph should not start
+        // with the number name.
+        yield `    sub ${name} by ${name}.upcA.setC guard.normal.triggerAddOn ${name}.below;` + '\n';
+
+  })()
+, `
+}upcA_stop;
+
+feature ${featureTag} {
+   sub @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers' lookup upcA_stop
+       ;
+}${featureTag};
+
+feature ${featureTag} {
+   sub @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers' lookup ean13_insert_center
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @upcASetC
+       guard.normal.triggerAddOn
+       @numBelow
+       ;
+}${featureTag};
+
+
+lookup upcA_start {
+`
+, ...(function*(){
+    for(let name of DIGITS)
+        // FIXME: for AGL type of glyph name to input string recovery,
+        // either the setA pattern or the below glyph should not start
+        // with the number name.
+        yield `    sub ${name} by ${name}.below guard.normal ${name}.upcA.setA;` + '\n';
+  })()
+, `
+}upcA_start;
+
+feature ${featureTag} {
+   sub @numbers' lookup upcA_start
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       guard.centre
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @numbers
+       @upcASetC
+       guard.normal.triggerAddOn
+       @numBelow
+       ;
+}${featureTag};
+
+# Left half of an UPC-A barcode is all set A
+feature ${featureTag} {
+   sub @numBelow
+       guard.normal
+       @upcASetA
+       @numbers' lookup ean13_setA
+       @numbers' lookup ean13_setA
+       @numbers' lookup ean13_setA
+       @numbers' lookup ean13_setA
+       @numbers' lookup ean13_setA
+       guard.centre
+       ;
+}${featureTag};
+
+# Right half of an UPC-A barcode is all setC
+feature ${featureTag} {
+   sub guard.centre
+       @numbers' lookup ean13_setC
+       @numbers' lookup ean13_setC
+       @numbers' lookup ean13_setC
+       @numbers' lookup ean13_setC
+       @numbers' lookup ean13_setC
+       @upcASetC
+       guard.normal.triggerAddOn
+       @numBelow
        ;
 }${featureTag};
 
