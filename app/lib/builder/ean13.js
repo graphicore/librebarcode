@@ -15,16 +15,16 @@ define([
         symbolsBase: [
             // Ther patterns are from Set A, Set B and Set C patterns will
             // be derrived from that.
-              [0, [3, 2, 1, 1], 'zero' , ['symbol',]]
-            , [1, [2, 2, 2, 1], 'one'  , ['symbol',]]
-            , [2, [2, 1, 2, 2], 'two'  , ['symbol',]]
-            , [3, [1, 4, 1, 1], 'three', ['symbol',]]
-            , [4, [1, 1, 3, 2], 'four' , ['symbol',]]
-            , [5, [1, 2, 3, 1], 'five' , ['symbol',]]
-            , [6, [1, 1, 1, 4], 'six'  , ['symbol',]]
-            , [7, [1, 3, 1, 2], 'seven', ['symbol',]]
-            , [8, [1, 2, 1, 3], 'eight', ['symbol',]]
-            , [9, [3, 1, 1, 2], 'nine' , ['symbol',]]
+              [0, [3, 2, 1, 1], 'zero' , ['symbol', 'zero']]
+            , [1, [2, 2, 2, 1], 'one'  , ['symbol', 'one']]
+            , [2, [2, 1, 2, 2], 'two'  , ['symbol', 'two']]
+            , [3, [1, 4, 1, 1], 'three', ['symbol', 'three']]
+            , [4, [1, 1, 3, 2], 'four' , ['symbol', 'four']]
+            , [5, [1, 2, 3, 1], 'five' , ['symbol', 'five']]
+            , [6, [1, 1, 1, 4], 'six'  , ['symbol', 'six']]
+            , [7, [1, 3, 1, 2], 'seven', ['symbol', 'seven']]
+            , [8, [1, 2, 1, 3], 'eight', ['symbol', 'eight']]
+            , [9, [3, 1, 1, 2], 'nine' , ['symbol', 'nine']]
         ]
       , glyphs: [
             // * pattern [S, B, S, B, S, B, ...]
@@ -67,23 +67,24 @@ define([
                 , []
               ]);
 
-              // special layout version for upc-A first and last pattern
-              data.glyphs.push([
-                  patternTransforms[setName](pattern)
-                , `${name}.upcA.${setName}` // e.g. three.upcA.setA
-                , [setName, 'upcA', ...groups]
-                , []
-              ]);
+              // Special layout version for UPC-A first and last pattern
+              // only setA and setC are used in add-ons and UPC-A
+              if(setName !== 'setB')
+                  data.glyphs.push([
+                      patternTransforms[setName](pattern)
+                    , `${name}.upcA.${setName}` // e.g. three.upcA.setA
+                    , [setName, 'upcA', ...groups]
+                    , []
+                  ]);
 
               // only setA and setB are used in add-ons
-              if(setName === 'setC')
-                  continue;
-              data.glyphs.push([
-                  patternTransforms[setName](pattern)
-                , `${name}.addOn.${setName}` // e.g. three.addOn.setA
-                , [setName, 'addOn', ...groups]
-                , []
-              ]);
+              if(setName !== 'setC')
+                  data.glyphs.push([
+                      patternTransforms[setName](pattern)
+                    , `${name}.addOn.${setName}` // e.g. three.addOn.setA
+                    , [setName, 'addOn', ...groups]
+                    , []
+                  ]);
           }
       }
       // Draw numbers 0-9 from the fontBelow, to have feedback for the
@@ -185,6 +186,67 @@ define([
           , right = 0
           ;
 
+        // In GS1 Generel Specifications pdf document under
+        //    5.2.3.1 Nominal dimensions of characters
+        // There's an exception, quote:
+        //  > The X-dimension at nominal size is 0.330 millimetre (0.0130 inch).
+        //  >
+        //  > The width of each bar (dark bar) and space (light bar) is
+        //  > determined by multiplying the X-dimension by the module width
+        //  > of each bar (dark bar) and space (light bar) (1, 2, 3, or 4).
+        //  > There is an exception for characters 1, 2, 7, and 8. For these
+        //  > characters, the bars (dark bars) and spaces (light bars) are
+        //  > reduced or enlarged by one-thirteenth of a module to provide a
+        //  > uniform distribution of bar width tolerances and thus improve
+        //  > scanning reliability.
+        //
+        // This is accompanied by a table:
+        //  > Figure 5.2.3.1-1. Reduction/enlargement for characters 1, 2, 7, and 8
+        //  >                 |       Number set A           |       Number Set B and C
+        //  > Character value | bar/dark bar | space/light bar | bar/dark bar | space/light bar
+        //  > ---------------------------------------------------------------------------------
+        //  >        1        |  - 0.025 mm  | + 0.025 mm      | + 0.025 mm  | - 0.025 mm
+        //  >        2        |  - 0.025 mm  | + 0.025 mm      | + 0.025 mm  | - 0.025 mm
+        //  >        7        |  + 0.025 mm  | - 0.025 mm      | - 0.025 mm  | + 0.025 mm
+        //  >        8        |  + 0.025 mm  | - 0.025 mm      | - 0.025 mm  | + 0.025 mm
+        //
+        //  Because we can't draw in physical sizes here, we'll have to
+        //  stick to the "one-thirteens" rule here:
+        //    0.330 mm /13 = 0.025384615384615387 mm
+        //   (Rounded to three decimal pointsthat's the 0.025 mm.)
+        //  What is called X-Dimension above is our "parameters.unit" (default: 30)
+        let barAdjustmentMagnitude = unit / 13 // 30 / 13 = 2.3076923076923075
+         , barAdjustments = {
+            'setA': {
+                  'one':   [-barAdjustmentMagnitude,  barAdjustmentMagnitude]
+                , 'two':   [-barAdjustmentMagnitude,  barAdjustmentMagnitude]
+                , 'seven': [ barAdjustmentMagnitude, -barAdjustmentMagnitude]
+                , 'eight': [ barAdjustmentMagnitude, -barAdjustmentMagnitude]
+            }
+          , 'setB': {
+                  'one':   [ barAdjustmentMagnitude, -barAdjustmentMagnitude]
+                , 'two':   [ barAdjustmentMagnitude, -barAdjustmentMagnitude]
+                , 'seven': [-barAdjustmentMagnitude,  barAdjustmentMagnitude]
+                , 'eight': [-barAdjustmentMagnitude,  barAdjustmentMagnitude]
+            }
+          }
+          ;
+        barAdjustments['setC'] = barAdjustments['setB'];
+        var [barAdjustmentDark, barAdjustmentLight] = [0, 0];
+        if(this.hasGroups('symbol')) {
+            getAdjustment:
+            for(let setName of Object.keys(barAdjustments)){
+                if(!this.hasGroups(setName)) continue;
+                let setAdjustments = barAdjustments[setName];
+                for(let symbolName of Object.keys(setAdjustments)) {
+                    if(!this.hasGroups(symbolName)) continue;
+                    // assert this.hasGroups('symbol', setName, symbolName)
+                    [barAdjustmentDark, barAdjustmentLight] = setAdjustments[symbolName];
+                    break getAdjustment;
+                }
+            }
+        }
+
         // TODO: all these "special" cases, it should be configurable
         // via the `parameters`.
         if(this.hasGroups('auxiliary', 'main')
@@ -215,6 +277,12 @@ define([
               , width = modules * unit
               , left
               ;
+
+            width = isBar
+                    ? width + barAdjustmentDark
+                    : width + barAdjustmentLight
+                    ;
+
             left = right;
             right += width;
             // if pen is not given this is used to calculate the accurate witdh.
