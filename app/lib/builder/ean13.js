@@ -568,108 +568,28 @@ lookup ean13_setC {
 # Left half of an EAN-13 barcode
 # variable parity mix of number sets A and B for
 # the six symbol characters in the left half of the symbol.
-feature ${featureTag} {
-   sub zero.below
+feature ${featureTag}{
+`, ...(function*(){
+    let numbersets = ['AAAAAA', 'AABABB', 'AABBAB', 'AABBBA', 'ABAABB'
+                    , 'ABBAAB', 'ABBBAA', 'ABABAB', 'ABABBA', 'ABBABA'];
+    for(let i=0; i<10; i++) {
+        let name=DIGITS[i]
+          , numberset=numbersets[i]
+          ;
+
+        yield `   sub ${name}.below
        guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
+       @numbers' lookup ean13_set${numberset[0]}
+       @numbers' lookup ean13_set${numberset[1]}
+       @numbers' lookup ean13_set${numberset[2]}
+       @numbers' lookup ean13_set${numberset[3]}
+       @numbers' lookup ean13_set${numberset[4]}
+       @numbers' lookup ean13_set${numberset[5]}
        guard.centre
-       ;
-   sub one.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       guard.centre
-       ;
-   sub two.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       guard.centre
-       ;
-   sub three.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       guard.centre
-       ;
-   sub four.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       guard.centre
-       ;
-   sub five.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       guard.centre
-       ;
-   sub six.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       guard.centre
-       ;
-   sub seven.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       guard.centre
-       ;
-   sub eight.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       guard.centre
-       ;
-   sub nine.below
-       guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setB
-       @numbers' lookup ean13_setA
-       guard.centre
-       ;
-}${featureTag};
+       ;` + '\n';
+    }
+})()
+,`}${featureTag};
 
 
 # Right half of an EAN-13 barcode is all setC
