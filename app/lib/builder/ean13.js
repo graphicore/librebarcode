@@ -67,15 +67,25 @@ define([
                 , []
               ]);
 
-              // Special layout version for UPC-A first and last pattern
-              // only setA and setC are used in add-ons and UPC-A
-              if(setName !== 'setB')
+
+              // only setA and setC are used in UPC-A and EAN-8
+              if(setName !== 'setB') {
+                  // EAN-8 is shorter (see parameters.topEAN8)
+                  data.glyphs.push([
+                      patternTransforms[setName](pattern)
+                    , `${name}.ean8.${setName}` // e.g. three.ean8.setA
+                    , [setName, 'ean8', ...groups]
+                    , []
+                  ]);
+
+                  // Special layout version for UPC-A first and last pattern
                   data.glyphs.push([
                       patternTransforms[setName](pattern)
                     , `${name}.upcA.${setName}` // e.g. three.upcA.setA
                     , [setName, 'upcA', ...groups]
                     , []
                   ]);
+              }
 
               // only setA and setB are used in add-ons
               if(setName !== 'setC')
@@ -117,9 +127,11 @@ define([
     data.glyphs.push(...[
             // Normal guard bar pattern
             [[0, 1, 1, 1], 'guard.normal', ['auxiliary', 'main', 'guard.normal'], []]
+          , [[0, 1, 1, 1], 'guard.normal.ean8', ['auxiliary', 'main', 'guard.normal', 'ean8'], []]
           , [[0, 1, 1, 1], 'guard.normal.triggerAddOn', ['auxiliary', 'main', 'guard.normal', 'triggerAddOn'], []]
             // Centre guard bar pattern
           , [[1, 1, 1, 1, 1], 'guard.centre', ['auxiliary', 'main'], []]
+          , [[1, 1, 1, 1, 1], 'guard.centre.ean8', ['auxiliary', 'main', 'ean8'], []]
             // Special guard bar pattern
           , [[1, 1, 1, 1, 1, 1], 'guard.special', ['auxiliary', 'main', 'triggerAddOn'], []]
             // Add-on guard bar pattern
@@ -182,7 +194,9 @@ define([
           , pattern = this.drawData
           , unit=parameters.unit
           , bottom = parameters.bottom
-          , top = parameters.top
+          , top = unit * (this.hasGroups('ean8')
+                              ? parameters.topEAN8
+                              : parameters.top)
           , right = 0
           ;
 
@@ -256,11 +270,12 @@ define([
                 // the first and last digit symbol of UPC-A is aligned
                 // with the guard patterns
                 || this.hasGroups('symbol', 'upcA')) {
-            bottom -= parameters.auxiliaryDrop;
+            bottom -= parameters.auxiliaryDrop * unit;
         }
         if (this.hasGroups('addOn') /* auxiliary and main */ ) {
             // make room for the text **above**
-            top -= this._parameters.fontBelowHeight + this._parameters.fontBelowPadding;
+            top -= this._parameters.fontBelowHeight * unit
+                      + this._parameters.fontBelowPadding * unit;
         }
 
         if (this.hasGroups('addOn.guard')) {
@@ -310,7 +325,8 @@ define([
                             // of scale * typoAscender then removed this line
                             //- this.fontBelow['OS/2'].typoDescender
                             // new new scale is almost the same magnitude
-          , scale = this._parameters.fontBelowHeight / height
+          , unit = this._parameters.unit
+          , scale = this._parameters.fontBelowHeight * unit / height
           ;
         return scale;
     };
@@ -319,9 +335,12 @@ define([
     _p._drawPointsFromFont = function(pen=null) {
         var transformation = null;
         if(this.name.endsWith('.below')) {
-            let scale = this._getFontBelowScale();
+            let scale = this._getFontBelowScale()
+             ,  unit = this._parameters.unit
+             ;
             transformation = new Transform()
-                .translate(0, -(this._parameters.fontBelowHeight + this._parameters.fontBelowPadding))
+                .translate(0, -(this._parameters.fontBelowHeight * unit
+                                + this._parameters.fontBelowPadding * unit))
                 .scale(scale);
         }
         let [advanceWidth, drawPointsFunc] = drawFromFont(
@@ -346,7 +365,7 @@ define([
 
             if(pen) {
                 // add font below ...
-                if(this.hasGroups('symbol', 'main')) {
+                if(this.hasGroups('symbol', 'main') || this.hasGroups('symbol', 'ean8')) {
                     let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`;
                     pen.addComponent(name, new Transform());
                 }
@@ -354,11 +373,14 @@ define([
                 // add font above ...
                 if(this.hasGroups('symbol', 'addOn')) {
                     let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`
+                      , unit = this._parameters.unit
                       , transformation =  new Transform().translate(0,
-                            // Glyph is at -(this._parameters.fontBelowHeight
-                            //                  + this._parameters.fontBelowPadding)
+                            // Glyph is at -(this._parameters.fontBelowHeight * unit
+                            //                  + this._parameters.fontBelowPadding * unit)
                             // it is moved up, so that it touches top:
-                            this._parameters.top + this._parameters.fontBelowPadding)
+                            // NOTE: there are no add-ons for ean-8 so there's
+                            // no need to distinguish with this._parameters.topEAN8
+                            this._parameters.top * unit + this._parameters.fontBelowPadding * unit)
                       ;
                     pen.addComponent(name, transformation);
                 }
@@ -467,16 +489,16 @@ lookup upcA_stop {
 # EAN-13 has a special named version of guard.normal (guard.normal.triggerAddOn)
 # to allow triggering the add ons which ean-8 doesn't support.
 lookup ean8_stop {
-    sub zero by zero guard.normal;
-    sub one by one guard.normal;
-    sub two by two guard.normal;
-    sub three by three guard.normal;
-    sub four by four guard.normal;
-    sub five by five guard.normal;
-    sub six by six guard.normal;
-    sub seven by seven guard.normal;
-    sub eight by eight guard.normal;
-    sub nine by nine guard.normal;
+    sub zero by zero guard.normal.ean8;
+    sub one by one guard.normal.ean8;
+    sub two by two guard.normal.ean8;
+    sub three by three guard.normal.ean8;
+    sub four by four guard.normal.ean8;
+    sub five by five guard.normal.ean8;
+    sub six by six guard.normal.ean8;
+    sub seven by seven guard.normal.ean8;
+    sub eight by eight guard.normal.ean8;
+    sub nine by nine guard.normal.ean8;
 }ean8_stop;
 
 lookup upcE_stop {
@@ -988,34 +1010,48 @@ feature ${featureTag}{
 ########
 ## EAN-8
 
+# substitute one to many to insert the centre guard symbol after the number
+lookup ean8_insert_center {
+    sub zero by zero guard.centre.ean8;
+    sub one by one guard.centre.ean8;
+    sub two by two guard.centre.ean8;
+    sub three by three guard.centre.ean8;
+    sub four by four guard.centre.ean8;
+    sub five by five guard.centre.ean8;
+    sub six by six guard.centre.ean8;
+    sub seven by seven guard.centre.ean8;
+    sub eight by eight guard.centre.ean8;
+    sub nine by nine guard.centre.ean8;
+}ean8_insert_center;
+
 # substitute one to many to insert the centre guard symbol after
-# the sixth number in ean 8, reuses the lookup ean13_insert_center
+# the fourth number in ean 8
 feature ${featureTag} {
    sub @numbers
        @numbers
        @numbers
-       @numbers' lookup ean13_insert_center
+       @numbers' lookup ean8_insert_center
        @numbers
        @numbers
        @numbers
        @numbers
-       guard.normal
+       guard.normal.ean8
        ;
 }${featureTag};
 
 # substitute one to many to insert the start guard symbol before
 # the first number in ean 8.
 lookup ean8_start {
-    sub zero by guard.normal zero;
-    sub one by guard.normal one;
-    sub two by guard.normal two;
-    sub three by guard.normal three;
-    sub four by guard.normal four;
-    sub five by guard.normal five;
-    sub six by guard.normal six;
-    sub seven by guard.normal seven;
-    sub eight by guard.normal eight;
-    sub nine by guard.normal nine;
+    sub zero by guard.normal.ean8 zero;
+    sub one by guard.normal.ean8 one;
+    sub two by guard.normal.ean8 two;
+    sub three by guard.normal.ean8 three;
+    sub four by guard.normal.ean8 four;
+    sub five by guard.normal.ean8 five;
+    sub six by guard.normal.ean8 six;
+    sub seven by guard.normal.ean8 seven;
+    sub eight by guard.normal.ean8 eight;
+    sub nine by guard.normal.ean8 nine;
 }ean8_start;
 
 feature ${featureTag} {
@@ -1023,34 +1059,45 @@ feature ${featureTag} {
        @numbers
        @numbers
        @numbers
-       guard.centre
+       guard.centre.ean8
        @numbers
        @numbers
        @numbers
        @numbers
-       guard.normal
+       guard.normal.ean8
        ;
 }${featureTag};
 
+@ean8SetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'ean8').map(g=>g.name).join(' ')}];
+@ean8SetC = [${ this.getGlyphsByGroup('symbol', 'setC', 'ean8').map(g=>g.name).join(' ')}];
+
+lookup ean8_setA{
+    sub @numbers by @ean8SetA;
+}ean8_setA;
+
+lookup ean8_setC{
+    sub @numbers by @ean8SetC;
+}ean8_setC;
+
 # Left half of an EAN-8 barcode is all setA
 feature ${featureTag} {
-   sub guard.normal
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       @numbers' lookup ean13_setA
-       guard.centre
+   sub guard.normal.ean8
+       @numbers' lookup ean8_setA
+       @numbers' lookup ean8_setA
+       @numbers' lookup ean8_setA
+       @numbers' lookup ean8_setA
+       guard.centre.ean8
        ;
 }${featureTag};
 
 # Right half of an EAN-8 barcode is all setC
 feature ${featureTag} {
-   sub guard.centre
-       @numbers' lookup ean13_setC
-       @numbers' lookup ean13_setC
-       @numbers' lookup ean13_setC
-       @numbers' lookup ean13_setC
-       guard.normal
+   sub guard.centre.ean8
+       @numbers' lookup ean8_setC
+       @numbers' lookup ean8_setC
+       @numbers' lookup ean8_setC
+       @numbers' lookup ean8_setC
+       guard.normal.ean8
        ;
 }${featureTag};
 

@@ -19,13 +19,19 @@ ADD_DSIG="./app/bin/add-dsig.py"
 FAMILY_BASE_NAME="Libre Barcode"
 FILE_BASENAME="LibreBarcode"
 
-UNITS_PER_EM=1024
-ASCENDER=900
-DESCENDER=-315
+# if we specify "unit" in here, we can make this fit to the UPM
+UNITS_PER_EM=2000
+ASC_MODULES=70
+DESC_MODULES=10
+HEIGHT_MODULES=$(expr $ASC_MODULES + $DESC_MODULES)
+MODULE_UNIT=$(expr $UNITS_PER_EM / $HEIGHT_MODULES) # floor( 1024 / 80 ) = 12
+
+ASCENDER=$(expr $ASC_MODULES \* $MODULE_UNIT) # 70 (~ parameters.top)
+DESCENDER=-$(expr $DESC_MODULES \* $MODULE_UNIT)
 STYLE_NAME="Regular"
 STYLEMAP_STYLE_NAME="regular"
-X_HEIGHT=400
-CAP_HEIGHT=900
+X_HEIGHT=$(expr $ASCENDER / 2)
+CAP_HEIGHT=${ASCENDER}
 VENDOR_ID="GRCR"
 LICENSE='This Font Software is licensed under the SIL Open Font '\
 'License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL'
@@ -59,12 +65,20 @@ FONTINFO_EAN13TEXT=$(cat <<EOT
 EOT
 )
 
+# Spec 5.2.3.2 Symbol height"
+#     auxiliaryDrop: 5x (units)
+#     top: depends!
+#         EAN-13, UPC-A, UPC-E: 22.85 mm (/ 0.330 = 69.24242424242425 units)
+#         EAN-8: 18.23 mm (/ 0.330 = 55.24242424242424)
+
 PARAMETERS_EAN13TEXT=$(cat <<EOT
 {
-    "top": 890
-  , "fontBelowHeight": 280
-  , "fontBelowPadding": 30
-  , "auxiliaryDrop": 155
+    "unit": ${MODULE_UNIT}
+  , "top": 69.24
+  , "topEAN8": 55.24
+  , "fontBelowHeight": 9
+  , "fontBelowPadding": 1
+  , "auxiliaryDrop": 5
 }
 EOT
 )
