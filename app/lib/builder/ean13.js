@@ -38,6 +38,8 @@ define([
             // * [groups]: used to select groups of glyphs
             // * targetChars ['c', 'h', 'a', 'r', 's'] => maybe needs to be done differently here
             [[7], 'space', [], [' ']] // 7 * unit ... drawn as a space
+          , [{fromFont: true, charCode: 'e'.charCodeAt(0)}, 'e.upce.marker', [], ['e']]
+          , [{fromFont: true, charCode: 'E'.charCodeAt(0)}, 'E.upce.marker', [], ['E']]
         ]
     };
     // ['one', 'two', 'three', ...]
@@ -420,30 +422,45 @@ lookup ean8_stop {
     sub nine by nine guard.normal;
 }ean8_stop;
 
+lookup upcE_stop {
+`,...(function*(){
+    for(let name of DIGITS)
+      yield `    sub ${name} by guard.special ${name}.below;` + '\n';
+})()
+,`}upcE_stop;
+
 # In order to be able to distinguish which type of code we want to build
 # we distinguish between a different number of input @numbers and initially
 # mark them with the stop symbol at the right place. The following features
 # and substitutions can pick up savely from there.
 #
 # Luckily most combinations can be decided without colisions. UPC-E is the
-# exception, but that will be handled with a special marker anyways!
+# exception, but that is be handled with a special marker anyways!
+#     * E marks a full UPC-compatible(!) GTIN-12 as input
+#     * e marks a short 7 digit input, the encoded numbers plus checksum.
+# To ensure a UPC-E is indeed scannable using E is preferable, because
+# it will not encode properly if it is incompatible!
+#
 #
 #  Column AA: with explicit check sum
 #  Column BB: if we would calculate the checksum (last digit) on the fly
 #             input length could be reduced by 1. (But that's fairly complex.)
-
-#  COMBINATIONS       AA   BB
-# ----------------------------
-#  EAN-13 + addOn-5   18   17
-#  UPC-A + addOn-5    17   16
-#  (UPC-E + addOn-5   17   16)
-#  EAN-13 + addOn-2   15   14
-#  UPC-A + addOn-2    14   13
-#  (UPC-E + addOn-2   14   13)
-#  EAN-13             13   12
-#  UPC-A              12   11
-#  (UPC-E             12   11)
-#  EAN-8               8    7
+#
+#  COMBINATIONS           AA   BB
+# --------------------    --------
+#  EAN-13 + addOn-5       18   17
+#  UPC-A + addOn-5        17   16
+#  (E + UPC-E + addOn-5   17   16)
+#  EAN-13 + addOn-2       15   14
+#  UPC-A + addOn-2        14   13
+#  (E + UPC-E + addOn-2   14   13)
+#  EAN-13                 13   12
+#  UPC-A                  12   11
+#  (E + UPC-E             12   11)
+#  (e + UPC-E + addOn-5   12   impossible)
+#  (e + UPC-E + addOn-2    9   impossible)
+#  EAN-8                   8    7
+#  (e + UPC-E              7   impossible)
 
 feature ${featureTag} {
 `, ...(function*(){
@@ -456,12 +473,27 @@ feature ${featureTag} {
     yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
+
+    // UPC-E + addOn-5 from suitable UPC-A
+    // User needs to enter an "E" as a marker to request an upc-e code
+    yield `   sub E.upce.marker'
+       zero'
+       ${repeat("@numbers'", 11)} lookup upcE_stop
+       ${repeat('@numbers', 5)}
+       ;` + '\n';
     // UPC-A + addOn-5
     yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // EAN-13 + addOn-2
     yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
+       ${repeat('@numbers', 2)}
+       ;` + '\n';
+    // UPC-E + addOn-2 from suitable UPC-A
+    // User needs to enter an "E" as a marker to request an upc-e code
+    yield `   sub E.upce.marker'
+       zero'
+       ${repeat("@numbers'", 11)} lookup upcE_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // UPC-A + addOn-2
@@ -471,11 +503,36 @@ feature ${featureTag} {
     // EAN-13
     yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
        ;` + '\n';
+    // UPC-E from suitable UPC-A
+    // User needs to enter an "E" as a marker to request an upc-e code
+    yield `   sub E.upce.marker'
+       zero'
+       ${repeat("@numbers'", 11)} lookup upcE_stop
+       ;` + '\n';
+    // UPC-E + addOn-5 from short input:
+    //          7 digits input, last digit is the checksum
+    // User needs to enter an "e" as a marker to request an upc-e code.
+    yield `   sub e.upce.marker
+       ${repeat("@numbers'", 7)} lookup upcE_stop
+       ${repeat('@numbers', 5)}
+       ;` + '\n';
     // UPC-A
     yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
        ;` + '\n';
+    // UPC-E + addOn-2 from short input:
+    //          7 digits input, last digit is the checksum
+    // User needs to enter an "e" as a marker to request an upc-e code.
+    yield `   sub e.upce.marker
+       ${repeat("@numbers'", 7)} lookup upcE_stop
+       ${repeat('@numbers', 2)}
+       ;` + '\n';
     // EAN-8
     yield `   sub ${repeat("@numbers'", 8)} lookup ean8_stop
+       ;` + '\n';
+    // UPC-E + addOn-2 from short input:
+    //          7 digits input, last digit is the checksum
+    yield `   sub e.upce.marker
+       ${repeat("@numbers'", 7)} lookup upcE_stop;
        ;` + '\n';
   })()
 ,`
@@ -696,6 +753,181 @@ feature ${featureTag} {
        ;
 }${featureTag};
 
+
+########
+## UPC-E
+
+# Reduce UPC-3 long form to short form
+# we know as glyph state:
+#   E.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelow(D12:checksum)
+# the result of the reduction will be:
+#   E.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelow(D12:checksum)
+
+@numNotZero = [ ${DIGITS.filter(name=>name !== 'zero').join(' ')} ];
+
+lookup upcE_remove_four_zeros {
+`,...(function*(){
+    for(let name of DIGITS) {
+        yield `    sub ${name} zero zero zero zero by ${name};` + '\n';
+    }
+})()
+,`}upcE_remove_four_zeros ;
+
+lookup upcE_remove_five_zeros {
+`,...(function*(){
+    for(let name of DIGITS) {
+        yield `    sub ${name} zero zero zero zero zero by ${name};` + '\n';
+    }
+})()
+,`}upcE_remove_five_zeros ;
+
+`,...(function*(){
+    for(let outerName of DIGITS.slice(0,5)){
+        yield `lookup upcE_insert_${outerName}{` + '\n';
+        for(let name of DIGITS)
+            yield `    sub ${name} by ${name} ${outerName};` + '\n';
+        yield `}upcE_insert_${outerName};` + '\n';
+    }
+})()
+,`
+
+lookup upcE_remove_single{
+`,...(function*(){
+    for(let name1 of DIGITS)
+        for(let name2 of DIGITS)
+            yield `    sub ${name1} ${name2} by ${name2};` + '\n';
+    // special case!
+    yield `    sub E.upce.marker zero by E.upce.marker;` + '\n';
+})()
+,`}upcE_remove_single;
+
+lookup upcE_case3_switch {
+`,...(function*(){
+    for(let name1 of ['zero', 'one', 'two']) {
+        for(let name2 of DIGITS) {
+            if(name1 === name2) continue;
+            yield `    sub ${name1}' lookup upcE_remove_single lookup upcE_insert_${name1} ${name2}';` + '\n';
+        }
+    }
+})()
+,`}upcE_case3_switch;
+
+feature ${featureTag} {
+# Rules for the reduction:
+# CASE A
+#   * D11 equals 5, 6, 7, 8, or 9
+#   * and D7 to D10 inclusive are all 0
+#   * and D6 is not 0
+#   * Example:  e012345000058 => 123455
+#   =>
+#   * D7 to D10 are not encoded.
+#   * Symbol character: X1 X2 X3 X4 X5 X6
+#   * Data character:   D2 D3 D4 D5 D6 D11
+    sub E.upce.marker zero
+        @numbers @numbers @numbers @numbers
+        @numNotZero' lookup upcE_remove_four_zeros zero' zero' zero' zero'
+        [ five six seven eight nine ]
+        guard.special
+        ;
+# CASE B
+#   * D6 to D10 inclusive are all 0
+#   * and D5 is not 0
+#   * Example: e045670000080 => 456784
+#   =>
+#   * D6 to D10 are not encoded and X6 = 4.
+#   * Symbol character: X1 X2 X3 X4 X5  X6
+#   * Data character:   D2 D3 D4 D5 D11 4
+    sub E.upce.marker zero
+        @numbers @numbers @numbers
+        @numNotZero' lookup upcE_remove_five_zeros zero'
+        lookup upcE_insert_four
+        zero' zero' zero' zero'
+        @numbers'
+        guard.special
+        ;
+# CASE C
+#   * D4 is 0, 1, or 2
+#   * and D5 to D8 inclusive are all 0
+#   * Example: e034000005673 => 345670
+#              e077200008889 (checksum not correct) => 778882
+#   =>
+#   * D5 to D8 are not encoded.
+#   * Symbol character: X1 X2 X3 X4  X5  X6
+#   * Data character:   D2 D3 D9 D10 D11 D4
+    sub E.upce.marker zero
+        @numbers @numbers [zero one two]'
+        lookup upcE_remove_four_zeros
+        # lookup upcE_case3_switch
+        # after removing four we need to manipulate the positions that
+        # have been occupied by zeros before, hence it appears that
+        # we "upcE_case3_switch" with zeros, but it's defacto switching
+        # with those positions where the zeros have been initially.
+        lookup upcE_case3_switch
+        zero' lookup upcE_case3_switch
+        zero' lookup upcE_case3_switch
+        zero' zero'
+        @numbers' @numbers' @numbers'
+        guard.special
+        ;
+# CASE D
+#   * D4 is 3, 4, 5, 6, 7, 8, or 9
+#   * and D5 to D9 inclusive are all 0
+#   * Example: e098400000751 => 984753
+#              e077700000889 (checksum not correct) => 777883
+#   =>
+#   * D5 to D9 are not encoded and X6 = 3
+#   * Symbol character: X1 X2 X3 X4  X5  X6
+#   * Data character:   D2 D3 D4 D10 D11 3
+    sub E.upce.marker zero
+        @numbers @numbers
+        [three four five six seven eight nine]' lookup upcE_remove_five_zeros
+        zero' zero' lookup upcE_insert_three
+        zero' zero' zero'
+        @numbers' @numbers'
+        guard.special
+        ;
+}${featureTag};
+
+
+# Now this unifies for short input and long input:
+
+lookup upcE_start{
+    sub e.upce.marker by zero.below guard.normal;
+    sub E.upce.marker by zero.below guard.normal;
+} upcE_start;
+
+feature ${featureTag} {
+  sub E.upce.marker' lookup upcE_remove_single lookup upcE_start  zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+  sub e.upce.marker' lookup upcE_start @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+}${featureTag};
+
+
+# variable parity mix of number sets A and B for
+# the six symbol characters in UPC-E
+feature ${featureTag}{
+`, ...(function*(){
+    let numbersets = ['BBBAAA', 'BBABAA', 'BBAABA' , 'BBAAAB', 'BABBAA'
+                     ,'BAABBA', 'BAAABB', 'BABABA', 'BABAAB', 'BAABAB'];
+    for(let i=0; i<10; i++) {
+        let name=DIGITS[i]
+          , numberset=numbersets[i]
+          ;
+
+        yield `   sub guard.normal
+       @numbers' lookup ean13_set${numberset[0]}
+       @numbers' lookup ean13_set${numberset[1]}
+       @numbers' lookup ean13_set${numberset[2]}
+       @numbers' lookup ean13_set${numberset[3]}
+       @numbers' lookup ean13_set${numberset[4]}
+       @numbers' lookup ean13_set${numberset[5]}
+       guard.special
+       ${name}.below
+       ;` + '\n';
+    }
+})()
+,`}${featureTag};
+
+
 ########
 ## EAN-8
 
@@ -805,6 +1037,7 @@ lookup addOn_start_two {
 
 feature ${featureTag} {
   # five digit
+  # UPC-A
   sub guard.normal.triggerAddOn'
       @numBelow' lookup addOn_start_five
       @numbers
@@ -813,6 +1046,16 @@ feature ${featureTag} {
       @numbers
       @numbers
       ;
+  # UPC-E
+  sub guard.special'
+      @numBelow' lookup addOn_start_five
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      ;
+  # EAN-13
   sub @endTriggerAddOn' lookup addOn_start_five
       @numbers
       @numbers
@@ -821,11 +1064,19 @@ feature ${featureTag} {
       @numbers
       ;
   # two digit
+  # UPC-A
   sub guard.normal.triggerAddOn'
       @numBelow' lookup addOn_start_two
       @numbers
       @numbers
       ;
+  # UPC-E
+  sub guard.special'
+      @numBelow' lookup addOn_start_two
+      @numbers
+      @numbers
+      ;
+  # EAN-13
   sub @endTriggerAddOn' lookup addOn_start_two
       @numbers
       @numbers
