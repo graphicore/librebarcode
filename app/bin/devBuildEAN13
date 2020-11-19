@@ -20,11 +20,17 @@ FAMILY_BASE_NAME="Libre Barcode"
 FILE_BASENAME="LibreBarcode"
 
 # if we specify "unit" in here, we can make this fit to the UPM
-UNITS_PER_EM=2000
+UNITS_PER_EM=1024
 ASC_MODULES=70
 DESC_MODULES=10
 HEIGHT_MODULES=$(expr $ASC_MODULES + $DESC_MODULES)
-MODULE_UNIT=$(expr $UNITS_PER_EM / $HEIGHT_MODULES) # floor( 1024 / 80 ) = 12
+# IMPORTANT! Scales the UNIT so the modules are bigger than the UPM
+# That way the font appears bigger than the size used in the apolication
+# which I think is necessary, because word processors limit the selectable
+# font sizes e.g. to max 96pt in google docs, which would leave this font
+# pretty much unusable there.
+BLOW_UP_FACTOR=3
+MODULE_UNIT=$(expr $BLOW_UP_FACTOR \* $UNITS_PER_EM / $HEIGHT_MODULES) # floor( 1024 / 80 ) = 12
 
 ASCENDER=$(expr $ASC_MODULES \* $MODULE_UNIT) # 70 (~ parameters.top)
 DESCENDER=-$(expr $DESC_MODULES \* $MODULE_UNIT)
@@ -70,7 +76,8 @@ EOT
 #     top: depends!
 #         EAN-13, UPC-A, UPC-E: 22.85 mm (/ 0.330 = 69.24242424242425 units)
 #         EAN-8: 18.23 mm (/ 0.330 = 55.24242424242424)
-
+# CAUTION: "Symbol height is not modular."
+#          Hence, this must not be changed according to the spec...
 PARAMETERS_EAN13TEXT=$(cat <<EOT
 {
     "unit": ${MODULE_UNIT}
