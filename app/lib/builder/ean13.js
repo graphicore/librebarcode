@@ -144,20 +144,7 @@ define([
     Object.defineProperties(_p, {
         width: {
             get: function() {
-
-                if(this.drawData.fromFont)
-                    return this._drawPointsFromFont();
-
-                if(Array.isArray(this.drawData)) {
-                    let width = this.drawData.reduce((a, b)=>a + b) * this._parameters.unit;
-                    if (this.hasGroups('addOn.guard')) {
-                        // is reflected in the draw function as well
-                        // because this.getGlyphByName('space').width is
-                        // the advance width.
-                        width += this.getGlyphByName('space').width;
-                    }
-                    return width;
-                }
+                return this.drawPoints(null);
             }
           , enumerable: true
         }
@@ -216,7 +203,6 @@ define([
 
         if (this.hasGroups('addOn.guard')) {
             // Add a quiet-zone between the barcode and the add-on
-            // Change of glyph width is done accordingly in the width getter.
             // right === advance
             right = this.getGlyphByName('space').width;
         }
@@ -231,8 +217,8 @@ define([
               ;
             left = right;
             right += width;
-
-            if (!isBar) continue;
+            // if pen is not given this is used to calculate the accurate witdh.
+            if (!isBar || !pen) continue;
 
             pen.beginPath();
             // Closed contours don't start with a move
@@ -242,6 +228,7 @@ define([
             pen.addPoint([right, bottom], 'line');
             pen.endPath();
         }
+        return right;
     };
 
     _p._getFontBelowScale = function() {
@@ -287,28 +274,30 @@ define([
 
         // the default?
         if(Array.isArray(this.drawData)) {
-            this._drawPointsFromPattern(pen);
+            let advance = this._drawPointsFromPattern(pen);
 
-            // add font below ...
-            if(this.hasGroups('symbol', 'main')) {
-                let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`;
-                pen.addComponent(name, new Transform());
+            if(pen) {
+                // add font below ...
+                if(this.hasGroups('symbol', 'main')) {
+                    let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`;
+                    pen.addComponent(name, new Transform());
+                }
+
+                // add font above ...
+                if(this.hasGroups('symbol', 'addOn')) {
+                    let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`
+                      , transformation =  new Transform().translate(0,
+                            // Glyph is at -(this._parameters.fontBelowHeight
+                            //                  + this._parameters.fontBelowPadding)
+                            // it is moved up, so that it touches top:
+                            this._parameters.top + this._parameters.fontBelowPadding)
+                      ;
+                    pen.addComponent(name, transformation);
+                }
             }
-
-            // add font above ...
-            if(this.hasGroups('symbol', 'addOn')) {
-                let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`
-                  , transformation =  new Transform().translate(0,
-                        // Glyph is at -(this._parameters.fontBelowHeight
-                        //                  + this._parameters.fontBelowPadding)
-                        // it is moved up, so that it touches top:
-                        this._parameters.top + this._parameters.fontBelowPadding)
-                  ;
-                pen.addComponent(name, transformation);
-            }
-
-            return;
+            return advance;
         }
+        throw new Error(`Don't know how to draw the glyph ${this.name}.`);
     };
 
     _p.createComposites = function* (withTextBelow) {
