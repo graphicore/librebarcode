@@ -40,8 +40,11 @@ define([
             [[7], 'space', [], [' ']] // 7 * unit ... drawn as a space
           , [{fromFont: true, charCode: 'e'.charCodeAt(0)}, 'e.upce.marker', [], ['e']]
           , [{fromFont: true, charCode: 'E'.charCodeAt(0)}, 'E.upce.marker', [], ['E']]
+          , [{fromFont: true, charCode: '<'.charCodeAt(0)}, 'lt.below', ['below', 'default', 'quietzone'], ['<']]
+          , [{fromFont: true, charCode: '>'.charCodeAt(0)}, 'gt.below', ['below', 'default', 'quietzone'], ['>']]
         ]
     };
+
     // ['one', 'two', 'three', ...]
     const DIGITS = data.symbolsBase.map(([,,name,])=>name);
 
@@ -81,7 +84,11 @@ define([
                   // Special layout version for UPC-A first and last pattern
                   data.glyphs.push([
                       patternTransforms[setName](pattern)
-                    , `${name}.upcA.${setName}` // e.g. three.upcA.setA
+                      // Prefixed with an "." to remove the glyph name from
+                      // the AGLFN interpretation of the glyph sting.
+                      // Instead, the names of the quiet zone numbers will
+                      // be used in UPC-A, otherwise we'd have a duplication.
+                    , `.${name}.upcA.${setName}` // e.g. .three.upcA.setA
                     , [setName, 'upcA', ...groups]
                     , []
                   ]);
@@ -117,7 +124,13 @@ define([
                // use the char code
                {fromFont: true, charCode: charCode}
              , `${name}.below`
-             , ['below', 'number']
+             , ['below', 'number', 'default']
+             , []
+          ]);
+          data.glyphs.push([
+               {fromFont: true, charCode: charCode}
+             , `${name}.below.upcquietzone`
+             , ['below', 'number', 'upcquietzone']
              , []
           ]);
       }
@@ -274,7 +287,7 @@ define([
         }
         if (this.hasGroups('addOn') /* auxiliary and main */ ) {
             // make room for the text **above**
-            top -= this._parameters.fontBelowHeight * unit
+            top -= this.fontBelowHeight
                       + this._parameters.fontBelowPadding * unit;
         }
 
@@ -314,41 +327,76 @@ define([
         return right;
     };
 
-    _p._getFontBelowScale = function() {
-            // Using height to calculate the scale is good, because
-            // it creates the same scaling for all of the font.
-            // This results in the new height fitting into fontBelowHeight
-            // units after scaling.
-        var height = this.fontBelow['OS/2'].capHeight
-                            // Hmm - this is a courious hack! I instead
-                            // adjusted the fontBelowHeight to the value
-                            // of scale * typoAscender then removed this line
-                            //- this.fontBelow['OS/2'].typoDescender
-                            // new new scale is almost the same magnitude
+    _p._getFontBelowScaleByWidth = function(widthUnits) {
+            // Here's a strong assumption that the font is monospaced
+            // or that at least the figures are tabular tabular lining
+            // figures, so all figures have the same advance width.
+          var glyph = this.fontBelow.glyphForCodePoint('0'.charCodeAt(0))
+          , width = glyph.advanceWidth
           , unit = this._parameters.unit
-          , scale = this._parameters.fontBelowHeight * unit / height
+          , scale = widthUnits * unit / width
           ;
         return scale;
     };
 
+    Object.defineProperty(_p, 'fontBelowHeight', {
+        get: function() {
+            // pattern width is 7
+            var scale = this._getFontBelowScaleByWidth(7)
+              , height = this.fontBelow['OS/2'].capHeight
+              ;
+            return height * scale;
+        }
+    });
+
     // doubles to only calculate width if no pen is given
     _p._drawPointsFromFont = function(pen=null) {
-        var transformation = null;
-        if(this.name.endsWith('.below')) {
-            let scale = this._getFontBelowScale()
-             ,  unit = this._parameters.unit
-             ;
+        var transformation = null
+          , advanceWidth = null
+          ;
+        if(this.hasGroups('below')) {
+            let scale = 1
+              , unit = this._parameters.unit
+              , y = 0
+              ;
+
+            if(this.hasGroups('default'))
+                // pattern width is 7
+                scale = this._getFontBelowScaleByWidth(7);
+            else if(this.hasGroups('upcquietzone')) {
+                    // Width 4 is defined by the spec:
+                    //
+                    // > 5.2.5 Human readable interpretation
+                    // > [...]
+                    // > For UPC-A and UPC-E barcodes, the size of the first
+                    // > and last digits should be reduced to a maximum width
+                    // > equivalent to four modules.
+                let widthModules = 4
+                    // From trying out (using Inconsolata!), drawing the
+                    // glyphs 1.25 times bigger is good to make it fill
+                    // out its full available space of 4 units
+                    // FIXME: make this configurable!
+                  , adjustFont = this._parameters.adjustFontUPCQuietZone || 1
+                  , adjustedWidthModules = widthModules * adjustFont
+                  ;
+                advanceWidth = widthModules * unit;
+                scale = this._getFontBelowScaleByWidth(widthModules) * adjustFont;
+                // move back to center on y axis:
+                y =  (widthModules - adjustedWidthModules) / 2 * unit;
+            }
+
             transformation = new Transform()
-                .translate(0, -(this._parameters.fontBelowHeight * unit
+                .translate(y, -(this.fontBelowHeight
                                 + this._parameters.fontBelowPadding * unit))
                 .scale(scale);
         }
-        let [advanceWidth, drawPointsFunc] = drawFromFont(
+        let [advanceWidth_, drawPointsFunc] = drawFromFont(
                   this.fontBelow, this.drawData.charCode, transformation);
+
         if(pen)
             drawPointsFunc(pen);
 
-        return advanceWidth;
+        return advanceWidth !== null ? advanceWidth : advanceWidth_;
     };
 
     _p.drawPoints = function(pen) {
@@ -375,7 +423,7 @@ define([
                     let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`
                       , unit = this._parameters.unit
                       , transformation =  new Transform().translate(0,
-                            // Glyph is at -(this._parameters.fontBelowHeight * unit
+                            // Glyph is at -(this.fontBelowHeight
                             //                  + this._parameters.fontBelowPadding * unit)
                             // it is moved up, so that it touches top:
                             // NOTE: there are no add-ons for ean-8 so there's
@@ -448,7 +496,7 @@ define([
         var featureTag = 'calt'
           , feature = [
                 '@numbers = [', this.getGlyphsByGroup('literal', 'number').map(g=>g.name).join(' '),'];\n'
-              , '@numBelow = [', this.getGlyphsByGroup('below', 'number').map(g=>g.name).join(' '),'];\n'
+              , '@numBelow = [', this.getGlyphsByGroup('below', 'number', 'default').map(g=>g.name).join(' '),'];\n'
               , '@setA = [', this.getGlyphsByGroup('symbol', 'setA', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setB = [', this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setC = [', this.getGlyphsByGroup('symbol', 'setC', 'main').map(g=>g.name).join(' '),'];\n'
@@ -475,10 +523,7 @@ lookup upcA_stop {
 `
 , ...(function*(){
     for(let name of DIGITS)
-        // FIXME: for AGL type of glyph name to input string recovery,
-        // either the setC pattern or the below glyph should not start
-        // with the number name.
-        yield `    sub ${name} by ${name}.upcA.setC guard.normal.triggerAddOn ${name}.below;` + '\n';
+        yield `    sub ${name} by .${name}.upcA.setC guard.normal.triggerAddOn ${name}.below.upcquietzone;` + '\n';
 
   })()
 , `
@@ -504,7 +549,7 @@ lookup ean8_stop {
 lookup upcE_stop {
 `,...(function*(){
     for(let name of DIGITS)
-      yield `    sub ${name} by guard.special ${name}.below;` + '\n';
+      yield `    sub ${name} by guard.special ${name}.below.upcquietzone;` + '\n';
 })()
 ,`}upcE_stop;
 
@@ -753,6 +798,7 @@ feature ${featureTag} {
 
 @upcASetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'upcA').map(g=>g.name).join(' ')}];
 @upcASetC = [${ this.getGlyphsByGroup('symbol', 'setC', 'upcA').map(g=>g.name).join(' ')}];
+@numBelowUpcquietzone = [${ this.getGlyphsByGroup('below', 'number', 'upcquietzone').map(g=>g.name).join(' ')}];
 
 feature ${featureTag} {
    sub @numbers
@@ -768,7 +814,7 @@ feature ${featureTag} {
        @numbers
        @upcASetC
        guard.normal.triggerAddOn
-       @numBelow
+       @numBelowUpcquietzone
        ;
 }${featureTag};
 
@@ -777,10 +823,7 @@ lookup upcA_start {
 `
 , ...(function*(){
     for(let name of DIGITS)
-        // FIXME: for AGL type of glyph name to input string recovery,
-        // either the setA pattern or the below glyph should not start
-        // with the number name.
-        yield `    sub ${name} by ${name}.below guard.normal ${name}.upcA.setA;` + '\n';
+        yield `    sub ${name} by ${name}.below.upcquietzone guard.normal .${name}.upcA.setA;` + '\n';
   })()
 , `
 }upcA_start;
@@ -800,13 +843,13 @@ feature ${featureTag} {
        @numbers
        @upcASetC
        guard.normal.triggerAddOn
-       @numBelow
+       @numBelowUpcquietzone
        ;
 }${featureTag};
 
 # Left half of an UPC-A barcode is all set A
 feature ${featureTag} {
-   sub @numBelow
+   sub @numBelowUpcquietzone
        guard.normal
        @upcASetA
        @numbers' lookup ean13_setA
@@ -828,7 +871,7 @@ feature ${featureTag} {
        @numbers' lookup ean13_setC
        @upcASetC
        guard.normal.triggerAddOn
-       @numBelow
+       @numBelowUpcquietzone
        ;
 }${featureTag};
 
@@ -838,9 +881,9 @@ feature ${featureTag} {
 
 # Reduce UPC-3 long form to short form
 # we know as glyph state:
-#   E.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelow(D12:checksum)
+#   E.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelowUpcquietzone(D12:checksum)
 # the result of the reduction will be:
-#   E.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelow(D12:checksum)
+#   E.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
 
 @numNotZero = [ ${DIGITS.filter(name=>name !== 'zero').join(' ')} ];
 
@@ -897,7 +940,7 @@ feature ${featureTag} {
 #   * D11 equals 5, 6, 7, 8, or 9
 #   * and D7 to D10 inclusive are all 0
 #   * and D6 is not 0
-#   * Example:  e012345000058 => 123455
+#   * Example:  E012345000058 => 123455
 #   =>
 #   * D7 to D10 are not encoded.
 #   * Symbol character: X1 X2 X3 X4 X5 X6
@@ -911,7 +954,7 @@ feature ${featureTag} {
 # CASE B
 #   * D6 to D10 inclusive are all 0
 #   * and D5 is not 0
-#   * Example: e045670000080 => 456784
+#   * Example: E045670000080 => 456784
 #   =>
 #   * D6 to D10 are not encoded and X6 = 4.
 #   * Symbol character: X1 X2 X3 X4 X5  X6
@@ -927,8 +970,8 @@ feature ${featureTag} {
 # CASE C
 #   * D4 is 0, 1, or 2
 #   * and D5 to D8 inclusive are all 0
-#   * Example: e034000005673 => 345670
-#              e077200008889 (checksum not correct) => 778882
+#   * Example: E034000005673 => 345670
+#              E077200008889 (checksum not correct) => 778882
 #   =>
 #   * D5 to D8 are not encoded.
 #   * Symbol character: X1 X2 X3 X4  X5  X6
@@ -951,8 +994,8 @@ feature ${featureTag} {
 # CASE D
 #   * D4 is 3, 4, 5, 6, 7, 8, or 9
 #   * and D5 to D9 inclusive are all 0
-#   * Example: e098400000751 => 984753
-#              e077700000889 (checksum not correct) => 777883
+#   * Example: E098400000751 => 984753
+#              E077700000889 (checksum not correct) => 777883
 #   =>
 #   * D5 to D9 are not encoded and X6 = 3
 #   * Symbol character: X1 X2 X3 X4  X5  X6
@@ -971,8 +1014,8 @@ feature ${featureTag} {
 # Now this unifies for short input and long input:
 
 lookup upcE_start{
-    sub e.upce.marker by zero.below guard.normal;
-    sub E.upce.marker by zero.below guard.normal;
+    sub e.upce.marker by zero.below.upcquietzone guard.normal;
+    sub E.upce.marker by zero.below.upcquietzone guard.normal;
 } upcE_start;
 
 feature ${featureTag} {
@@ -1000,7 +1043,7 @@ feature ${featureTag}{
        @numbers' lookup ean13_set${numberset[4]}
        @numbers' lookup ean13_set${numberset[5]}
        guard.special
-       ${name}.below
+       ${name}.below.upcquietzone
        ;` + '\n';
     }
 })()
@@ -1123,9 +1166,10 @@ feature ${featureTag} {
 lookup addOn_start_five {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.fiveDigit;
     sub guard.special by guard.special addOn.guard.fiveDigit;
+    # UPC-A, UPC-E
     `,...(function*(){
     for(let name of DIGITS)
-        yield `    sub ${name}.below by ${name}.below addOn.guard.fiveDigit;` + '\n';
+        yield `    sub ${name}.below.upcquietzone by ${name}.below.upcquietzone addOn.guard.fiveDigit;` + '\n';
 })()
 ,`
 }addOn_start_five;
@@ -1133,9 +1177,10 @@ lookup addOn_start_five {
 lookup addOn_start_two {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.twoDigit;
     sub guard.special by guard.special addOn.guard.twoDigit;
+    # UPC-A, UPC-E
 `,...(function*(){
     for(let name of DIGITS)
-        yield `    sub ${name}.below by ${name}.below addOn.guard.twoDigit;` + '\n';
+        yield `    sub ${name}.below.upcquietzone by ${name}.below.upcquietzone addOn.guard.twoDigit;` + '\n';
 })()
 ,`}addOn_start_two;
 
@@ -1143,7 +1188,7 @@ feature ${featureTag} {
   # five digit
   # UPC-A
   sub guard.normal.triggerAddOn'
-      @numBelow' lookup addOn_start_five
+      @numBelowUpcquietzone' lookup addOn_start_five
       @numbers
       @numbers
       @numbers
@@ -1152,7 +1197,7 @@ feature ${featureTag} {
       ;
   # UPC-E
   sub guard.special'
-      @numBelow' lookup addOn_start_five
+      @numBelowUpcquietzone' lookup addOn_start_five
       @numbers
       @numbers
       @numbers
@@ -1170,13 +1215,13 @@ feature ${featureTag} {
   # two digit
   # UPC-A
   sub guard.normal.triggerAddOn'
-      @numBelow' lookup addOn_start_two
+      @numBelowUpcquietzone' lookup addOn_start_two
       @numbers
       @numbers
       ;
   # UPC-E
   sub guard.special'
-      @numBelow' lookup addOn_start_two
+      @numBelowUpcquietzone' lookup addOn_start_two
       @numbers
       @numbers
       ;

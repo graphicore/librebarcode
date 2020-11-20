@@ -83,8 +83,8 @@ PARAMETERS_EAN13TEXT=$(cat <<EOT
     "unit": ${MODULE_UNIT}
   , "top": 69.24
   , "topEAN8": 55.24
-  , "fontBelowHeight": 9
   , "fontBelowPadding": 1
+  , "adjustFontUPCQuietZone": 1.25
   , "auxiliaryDrop": 5
 }
 EOT
