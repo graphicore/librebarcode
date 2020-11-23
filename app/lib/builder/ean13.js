@@ -287,8 +287,7 @@ define([
         }
         if (this.hasGroups('addOn') /* auxiliary and main */ ) {
             // make room for the text **above**
-            top -= this.fontBelowHeight
-                      + this._parameters.fontBelowPadding * unit;
+            top -= this.fontBelowHeight + this.fontBelowPadding;
         }
 
         if (this.hasGroups('addOn.guard')) {
@@ -349,6 +348,12 @@ define([
         }
     });
 
+    Object.defineProperty(_p, 'fontBelowPadding', {
+        get: function() {
+            return this._parameters.fontBelowPadding * this._parameters.unit;
+        }
+    });
+
     // doubles to only calculate width if no pen is given
     _p._drawPointsFromFont = function(pen=null) {
         var transformation = null
@@ -386,8 +391,7 @@ define([
             }
 
             transformation = new Transform()
-                .translate(y, -(this.fontBelowHeight
-                                + this._parameters.fontBelowPadding * unit))
+                .translate(y, -(this.fontBelowHeight + this.fontBelowPadding))
                 .scale(scale);
         }
         let [advanceWidth_, drawPointsFunc] = drawFromFont(
@@ -424,11 +428,11 @@ define([
                       , unit = this._parameters.unit
                       , transformation =  new Transform().translate(0,
                             // Glyph is at -(this.fontBelowHeight
-                            //                  + this._parameters.fontBelowPadding * unit)
+                            //                  + this.fontBelowPadding)
                             // it is moved up, so that it touches top:
                             // NOTE: there are no add-ons for ean-8 so there's
                             // no need to distinguish with this._parameters.topEAN8
-                            this._parameters.top * unit + this._parameters.fontBelowPadding * unit)
+                            this._parameters.top * unit + this.fontBelowPadding)
                       ;
                     pen.addComponent(name, transformation);
                 }
