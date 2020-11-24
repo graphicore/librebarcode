@@ -40,8 +40,9 @@ define([
             [[7], 'space', [], [' ']] // 7 * unit ... drawn as a space
           , [{fromFont: true, charCode: 'e'.charCodeAt(0)}, 'e.upce.marker', [], ['e']]
           , [{fromFont: true, charCode: 'E'.charCodeAt(0)}, 'E.upce.marker', [], ['E']]
-          , [{fromFont: true, charCode: '<'.charCodeAt(0)}, 'lt.below', ['below', 'default', 'quietzone'], ['<']]
-          , [{fromFont: true, charCode: '>'.charCodeAt(0)}, 'gt.below', ['below', 'default', 'quietzone'], ['>']]
+          , [{fromFont: true, charCode: '<'.charCodeAt(0)}, 'lt.below.quiet', ['below', 'default', 'quietzone'], ['<']]
+          , [{fromFont: true, charCode: '>'.charCodeAt(0)}, 'gt.below.quiet', ['below', 'default', 'quietzone'], ['>']]
+          , [[5], 'gt.addon.quiet', ['addOn', 'default', 'quietzone'], [')']]
         ]
     };
 
@@ -290,12 +291,6 @@ define([
             top -= this.fontBelowHeight + this.fontBelowPadding;
         }
 
-        if (this.hasGroups('addOn.guard')) {
-            // Add a quiet-zone between the barcode and the add-on
-            // right === advance
-            right = this.getGlyphByName('space').width;
-        }
-
         for(let [i, modules] of pattern.entries()) {
           // S = space/light bar B = bar/dark bar
           // first item (i === 0) is always a space
@@ -422,9 +417,13 @@ define([
                     pen.addComponent(name, new Transform());
                 }
 
+
                 // add font above ...
-                if(this.hasGroups('symbol', 'addOn')) {
-                    let name = `${this.name.slice(0, this.name.indexOf('.'))}.below`
+                if(this.hasGroups('symbol', 'addOn') || this.hasGroups('addOn', 'quietzone')) {
+                    let name = this.hasGroups('quietzone')
+                            // gt.addon.quiet => gt.below.quiet
+                          ? this.name.replace('addon', 'below')
+                          : `${this.name.slice(0, this.name.indexOf('.'))}.below`
                       , unit = this._parameters.unit
                       , transformation =  new Transform().translate(0,
                             // Glyph is at -(this.fontBelowHeight
@@ -503,6 +502,8 @@ define([
               , '@numBelow = [', this.getGlyphsByGroup('below', 'number', 'default').map(g=>g.name).join(' '),'];\n'
               , '@setA = [', this.getGlyphsByGroup('symbol', 'setA', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setB = [', this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
+              , '@setAB = [', this.getGlyphsByGroup('symbol', 'setA', 'main').map(g=>g.name).join(' '), ' '
+                            , this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setC = [', this.getGlyphsByGroup('symbol', 'setC', 'main').map(g=>g.name).join(' '),'];\n'
               , `
 #########
@@ -1565,6 +1566,163 @@ feature ${featureTag} {
         @addOnSetAB
         ;
 }${featureTag};
+
+
+# insert quiet zone characters lt.below.quiet, gt.below.quiet and
+# the gt.addon.quiet that is actually above after the add-ons.
+
+@addOnGuards = [${ this.getGlyphsByGroup('addOn.guard').map(g=>g.name).join(' ')}];
+
+lookup quietzone_insert_before {
+    sub guard.normal.ean8 by lt.below.quiet guard.normal.ean8;
+}quietzone_insert_before;
+
+lookup quietzone_insert_end {
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn gt.below.quiet;
+    sub guard.normal.ean8 by guard.normal.ean8 gt.below.quiet;
+`,
+...(function*(builder) {
+    for(let glyph of builder.getGlyphsByGroup('symbol', 'addOn'))
+        yield `    sub ${glyph.name} by ${glyph.name} gt.addon.quiet;` + '\n';
+})(this)
+,`}quietzone_insert_end;
+
+feature ${featureTag} {
+    # EAN-13 not followed by an add-on
+    ignore sub @numBelow
+        guard.normal
+        @setAB @setAB @setAB @setAB @setAB @setAB
+        guard.centre
+        @setC @setC @setC @setC @setC @setC
+        guard.normal.triggerAddOn'
+        @addOnGuards
+        ;
+    sub @numBelow
+        guard.normal
+        @setAB @setAB @setAB @setAB @setAB @setAB
+        guard.centre
+        @setC @setC @setC @setC @setC @setC
+        guard.normal.triggerAddOn' lookup quietzone_insert_end
+        ;
+    # EAN-8
+    sub guard.normal.ean8' lookup quietzone_insert_before
+        @ean8SetA @ean8SetA @ean8SetA @ean8SetA
+        guard.centre.ean8
+        @ean8SetC @ean8SetC @ean8SetC @ean8SetC
+        guard.normal.ean8
+        ;
+    sub addOn.guard.fiveDigit
+        @addOnSetAB addOn.delineator
+        @addOnSetAB addOn.delineator
+        @addOnSetAB addOn.delineator
+        @addOnSetAB addOn.delineator
+        @addOnSetAB' lookup quietzone_insert_end
+        ;
+    sub addOn.guard.twoDigit
+        @addOnSetAB addOn.delineator
+        @addOnSetAB' lookup quietzone_insert_end
+        ;
+}${featureTag};
+
+feature ${featureTag} {
+    # EAN-8
+    sub lt.below.quiet
+        guard.normal.ean8
+        @ean8SetA @ean8SetA @ean8SetA @ean8SetA
+        guard.centre.ean8
+        @ean8SetC @ean8SetC @ean8SetC @ean8SetC
+        guard.normal.ean8' lookup quietzone_insert_end
+        ;
+}${featureTag};
+
+
+# From the GS-1 standard
+# Figure 5.2.3.4-1. Quiet Zone widths by version
+#
+# Symbol version   | Left Quiet Zone | Right Quiet Zone
+# -----------------|-----------------|-----------------
+# EAN-13           |       11        |        7
+# EAN-8            |       7         |        7
+# UPC-A            |       9         |        9
+# UPC-E            |       9         |        7
+# Add-ons (EAN)    |       7-12      |        5
+# Add-ons (U.P.C.) |       9-12      |        5
+
+
+
+
+
+lookup qietzone_main{
+    # EAN-13 left needs 11 units, has 7 units advace
+    pos @numBelow <0 0 ${ 4 * this.parameters.unit } 0> guard.normal;
+    # UPC-A UPC-E left:  needs 9 units, has 4 units advance
+    pos @numBelowUpcquietzone <0 0 ${ 5 * this.parameters.unit } 0> guard.normal;
+    # UPC-A right with and without add-on needs 9 units, has 4 units advance
+    pos guard.normal.triggerAddOn 0 @numBelowUpcquietzone <${ 5 * this.parameters.unit } 0 ${ 5 * this.parameters.unit } 0>;
+    # UPC-E right no add-on: needs 7 units, has 4
+    pos guard.special 0 @numBelowUpcquietzone <${ 3 * this.parameters.unit } 0 ${ 3 * this.parameters.unit } 0>;
+}qietzone_main;
+
+lookup qietzone_addon{
+    # Add-on UPC-E left: needs 9-12 units, has 4
+    pos guard.special 0 @numBelowUpcquietzone <${ 5 * this.parameters.unit } 0 ${ 5 * this.parameters.unit } 0>;
+    # Add-on EAN-13 left: needs 7-12 has 0
+    pos guard.normal.triggerAddOn 0 @addOnGuards <${ 9 * this.parameters.unit } 0 ${ 9 * this.parameters.unit } 0>;
+}qietzone_addon;
+
+# quiet zone distances
+feature kern {
+    # EAN 13 left
+    pos @numBelow' lookup qietzone_main
+        guard.normal'
+        @setAB @setAB @setAB @setAB @setAB @setAB
+        guard.centre
+        ;
+    # EAN 13 right: > has 7 units
+    # Add-ons (EAN) only EAN 13 features add-ons
+    pos guard.centre
+        @setC @setC @setC @setC @setC @setC
+        guard.normal.triggerAddOn' lookup qietzone_addon
+        @addOnGuards'
+        ;
+    # EAN 8 left: < has 7 units
+    # EAN 8 right: > has 7 units
+    # UPC-A start
+    pos @numBelowUpcquietzone' lookup qietzone_main
+        guard.normal'
+        @upcASetA @setA @setA @setA @setA @setA
+        guard.centre
+        ;
+    # UPC-A end with and without add-on
+    pos guard.centre
+        @setC @setC @setC @setC @setC @upcASetC
+        guard.normal.triggerAddOn' lookup qietzone_main
+        @numBelowUpcquietzone'
+        ;
+    # UPC-E start
+    pos @numBelowUpcquietzone' lookup qietzone_main
+        guard.normal'
+        @setAB @setAB @setAB @setAB @setAB @setAB
+        guard.special
+        @numBelowUpcquietzone
+        ;
+    # UPC-E end with add-on
+    pos @numBelowUpcquietzone
+        guard.normal
+        @setAB @setAB @setAB @setAB @setAB @setAB
+        guard.special' lookup qietzone_addon
+        @numBelowUpcquietzone' @addOnGuards
+        ;
+    # UPC-E end without add-on
+    pos @numBelowUpcquietzone
+        guard.normal
+        @setAB @setAB @setAB @setAB @setAB @setAB
+        guard.special' lookup qietzone_main
+        @numBelowUpcquietzone'
+        ;
+    # Add-on right: > has 5 units
+}kern;
+
 `
         ];
         return feature.join('');
@@ -1584,3 +1742,4 @@ feature ${featureTag} {
       , Glyph: EAN13Glyph
     };
 });
+
