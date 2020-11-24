@@ -40,6 +40,9 @@ define([
             [[7], 'space', [], [' ']] // 7 * unit ... drawn as a space
           , [{fromFont: true, charCode: 'e'.charCodeAt(0)}, 'e.upce.marker', [], ['e']]
           , [{fromFont: true, charCode: 'E'.charCodeAt(0)}, 'E.upce.marker', [], ['E']]
+            // Manually trigger add-ons, for EAN-13, UPC-A, UPC-E this is not necessary
+            // but e.g. foe special stand alne or maybe even non-standard use after ean-8
+          , [{fromFont: true, charCode: '+'.charCodeAt(0)}, 'addon.marker', [], ['+']]
           , [{fromFont: true, charCode: '<'.charCodeAt(0)}, 'lt.below.quiet', ['below', 'default', 'quietzone'], ['<']]
           , [{fromFont: true, charCode: '>'.charCodeAt(0)}, 'gt.below.quiet', ['below', 'default', 'quietzone'], ['>']]
           , [[5], 'gt.addon.quiet', ['addOn', 'default', 'quietzone'], [')']]
@@ -1171,6 +1174,7 @@ feature ${featureTag} {
 lookup addOn_start_five {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.fiveDigit;
     sub guard.special by guard.special addOn.guard.fiveDigit;
+    sub addon.marker by addon.marker addOn.guard.fiveDigit;
     # UPC-A, UPC-E
     `,...(function*(){
     for(let name of DIGITS)
@@ -1182,6 +1186,7 @@ lookup addOn_start_five {
 lookup addOn_start_two {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.twoDigit;
     sub guard.special by guard.special addOn.guard.twoDigit;
+    sub addon.marker by addon.marker addOn.guard.twoDigit;
     # UPC-A, UPC-E
 `,...(function*(){
     for(let name of DIGITS)
@@ -1209,14 +1214,15 @@ feature ${featureTag} {
       @numbers
       @numbers
       ;
-  # EAN-13
-  sub @endTriggerAddOn' lookup addOn_start_five
+  # EAN-13 / manual
+  sub [@endTriggerAddOn addon.marker]' lookup addOn_start_five
       @numbers
       @numbers
       @numbers
       @numbers
       @numbers
       ;
+
   # two digit
   # UPC-A
   sub guard.normal.triggerAddOn'
@@ -1230,11 +1236,17 @@ feature ${featureTag} {
       @numbers
       @numbers
       ;
-  # EAN-13
-  sub @endTriggerAddOn' lookup addOn_start_two
+  # EAN-13 / manual
+  sub [@endTriggerAddOn addon.marker]' lookup addOn_start_two
       @numbers
       @numbers
       ;
+}${featureTag};
+
+# remove manual "addon.marker"
+feature ${featureTag} {
+    sub addon.marker addOn.guard.twoDigit by addOn.guard.twoDigit;
+    sub addon.marker addOn.guard.fiveDigit by addOn.guard.fiveDigit;
 }${featureTag};
 
 @addOnSetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'addOn').map(g=>g.name).join(' ')}];
