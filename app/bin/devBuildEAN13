@@ -30,7 +30,7 @@ HEIGHT_MODULES=$(expr $ASC_MODULES + $DESC_MODULES)
 # font sizes e.g. to max 96pt in google docs, which would leave this font
 # pretty much unusable there.
 BLOW_UP_FACTOR=3
-MODULE_UNIT=$(expr $BLOW_UP_FACTOR \* $UNITS_PER_EM / $HEIGHT_MODULES) # floor( 1024 / 80 ) = 12
+MODULE_UNIT=$(expr $BLOW_UP_FACTOR \* $UNITS_PER_EM / $HEIGHT_MODULES) # floor( 3 * 1024 / 80 ) = 38
 
 ASCENDER=$(expr $ASC_MODULES \* $MODULE_UNIT) # 70 (~ parameters.top)
 DESCENDER=-$(expr $DESC_MODULES \* $MODULE_UNIT)
