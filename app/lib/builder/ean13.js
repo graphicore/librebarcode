@@ -37,16 +37,59 @@ define([
             // * name/id unique!
             // * [groups]: used to select groups of glyphs
             // * targetChars ['c', 'h', 'a', 'r', 's'] => maybe needs to be done differently here
-            [[7], 'space', [], [' ']] // 7 * unit ... drawn as a space
-          , [{fromFont: true, charCode: 'e'.charCodeAt(0)}, 'e.upce.marker', [], ['e']]
-          , [{fromFont: true, charCode: 'E'.charCodeAt(0)}, 'E.upce.marker', [], ['E']]
+            [[9], 'space', [], [' ']] // 9 * unit ... drawn as a space
+          , [{fromFont: true, charCode: 'x'.charCodeAt(0)}, '.short.upce.marker', [], ['x']]
+          , [{fromFont: true, charCode: 'X'.charCodeAt(0)}, '.long.upce.marker', [], ['X']]
             // Manually trigger add-ons, for EAN-13, UPC-A, UPC-E this is not necessary
             // but e.g. foe special stand alne or maybe even non-standard use after ean-8
-          , [{fromFont: true, charCode: '+'.charCodeAt(0)}, 'addon.marker', [], ['+']]
+          , [{fromFont: true, charCode: '-'.charCodeAt(0)}, 'addon.marker', [], ['-']]
           , [{fromFont: true, charCode: '<'.charCodeAt(0)}, 'lt.below.quiet', ['below', 'default', 'quietzone'], ['<']]
           , [{fromFont: true, charCode: '>'.charCodeAt(0)}, 'gt.below.quiet', ['below', 'default', 'quietzone'], ['>']]
           , [[5], 'gt.addon.quiet', ['addOn', 'default', 'quietzone'], [')']]
         ]
+        // Compatibility wiht ean13.ttf by grandzebu.net
+        // https://grandzebu.net/informatique/codbar-en/ean13.htm
+        //
+        //
+        // This font contain the 5 sets of the 10 digits for the 3 tables
+        // A, B and C learned above and 2 tables for the first digit (Table D & E)
+        //
+        //  Table A : Set of code A with the digit under the barcode.
+        //  Table B : Set of code B with the digit under the barcode.
+        //  Table C : Set of code C with the digit under the barcode.
+        //  Table D : Set of digits with the start delimiter
+        //  Table E : Set of digits without the start delimiter (Requested for
+        //            the SAGE softwares)
+        //
+        // The following table indicates the correspondence between the drawned bar
+        // code and the typed letter (ASCII code between bracket)
+        //
+        // Digit | Table A | Table B | Table C | Table D | Table E
+        //--------------------------------------------------------
+        //   0   | A (65)  | K (75)  | a  (97) | 0 (48)  | k (107)
+        //   1   | B (66)  | L (76)  | b  (98) | 1 (49)  | l (108)
+        //   2   | C (67)  | M (77)  | c  (99) | 2 (50)  | m (109)
+        //   3   | D (68)  | N (78)  | d (100  | 3 (51)  | n (110)
+        //   4   | E (69)  | O (79)  | e (101) | 4 (52)  | o (111)
+        //   5   | F (70)  | P (80)  | f (102) | 5 (53)  | p (112)
+        //   6   | G (71)  | Q (81)  | g (103) | 6 (54)  | q (113)
+        //   7   | H (72)  | R (82)  | h (104) | 7 (55)  | r (114)
+        //   8   | I (73)  | S (83)  | i (105) | 8 (56)  | s (115)
+        //   9   | J (74)  | T (84)  | j (106) | 9 (57)  | t (116)
+        //
+        //  Additional codes :
+        // : (58) : Start delimiter (For SAGE software)
+        // * (42) : Middle delimiter
+        // + (43) : End delimiter
+        // [ (91) : Start add-on delimiter
+        // \ (92) : Character separator in add-on
+      , compatChars: {
+            setA: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+          , setB: ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T']
+          , setC: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+          , D: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+          , E: ['k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't']
+        }
     };
 
     // ['one', 'two', 'three', ...]
@@ -66,12 +109,12 @@ define([
       };
 
       for(let setName of ['setA', 'setB', 'setC']) {
-          for(let [, pattern, name, groups] of data.symbolsBase) {
+          for(let [i, pattern, name, groups] of data.symbolsBase) {
               data.glyphs.push([
                   patternTransforms[setName](pattern)
                 , `${name}.${setName}` // e.g. three.setA
                 , [setName, 'main', ...groups]
-                , []
+                , [data.compatChars[setName][i].charCodeAt(0)]
               ]);
 
 
@@ -120,7 +163,7 @@ define([
                {fromFont: true, charCode: charCode}
              , name
              , ['literal', 'number']
-             , [char]
+             , []// [char] -> no more becaus of data.compatChars
           ]);
 
           data.glyphs.push([
@@ -129,7 +172,7 @@ define([
                {fromFont: true, charCode: charCode}
              , `${name}.below`
              , ['below', 'number', 'default']
-             , []
+             , [data.compatChars['E'][value]]
           ]);
           data.glyphs.push([
                {fromFont: true, charCode: charCode}
@@ -137,24 +180,39 @@ define([
              , ['below', 'number', 'upcquietzone']
              , []
           ]);
+          // compatibility Table D
+          data.glyphs.push([
+               {fromComponents: [`${name}.below`, 4, 'guard.normal']}
+             , `${name}.compatibility`
+             , ['number', 'compatibility']
+             , [data.compatChars['D'][value]]
+          ]);
       }
     })();
 
     // Auxiliary pattern
     data.glyphs.push(...[
             // Normal guard bar pattern
-            [[0, 1, 1, 1], 'guard.normal', ['auxiliary', 'main', 'guard.normal'], []]
+            // compatibility ":" (58) : Start delimiter (For SAGE software)
+            [[0, 1, 1, 1], 'guard.normal', ['auxiliary', 'main', 'guard.normal'], [':']]
           , [[0, 1, 1, 1], 'guard.normal.ean8', ['auxiliary', 'main', 'guard.normal', 'ean8'], []]
-          , [[0, 1, 1, 1], 'guard.normal.triggerAddOn', ['auxiliary', 'main', 'guard.normal', 'triggerAddOn'], []]
+            // compatibility "+" (43) : End delimiter
+          , [[0, 1, 1, 1], 'guard.normal.triggerAddOn', ['auxiliary', 'main', 'guard.normal', 'triggerAddOn'], ['+']]
             // Centre guard bar pattern
-          , [[1, 1, 1, 1, 1], 'guard.centre', ['auxiliary', 'main'], []]
+            // compatibility "*" (42) : Middle delimiter
+          , [[1, 1, 1, 1, 1], 'guard.centre', ['auxiliary', 'main'], ['*']]
           , [[1, 1, 1, 1, 1], 'guard.centre.ean8', ['auxiliary', 'main', 'ean8'], []]
             // Special guard bar pattern
+            // Not accessible by compatibile mode!
           , [[1, 1, 1, 1, 1, 1], 'guard.special', ['auxiliary', 'main', 'triggerAddOn'], []]
             // Add-on guard bar pattern
+            // compatibility "[" (91) : Start add-on delimiter
+          , [[0, 1, 1, 2], 'addOn.guard.compatible', ['auxiliary', 'compatible'], ['[']]
           , [[0, 1, 1, 2], 'addOn.guard.twoDigit', ['auxiliary', 'addOn', 'addOn.guard'], []]
           , [[0, 1, 1, 2], 'addOn.guard.fiveDigit', ['auxiliary', 'addOn', 'addOn.guard'], []]
             // Add-on delineator
+            // compatibility "\" (92) : Character separator in add-on
+          , [[1, 1], 'addOn.delineator.compatible', ['auxiliary', 'compatible'], ['\\']]
           , [[1, 1], 'addOn.delineator', ['auxiliary', 'addOn'], []]
     ]);
 
@@ -409,6 +467,25 @@ define([
         if(this.drawData.fromFont)
             return this._drawPointsFromFont(pen);
 
+        if(this.drawData.fromComponents) {
+            let transformation = new Transform();
+            for(let name of this.drawData.fromComponents) {
+                let width;
+                if(typeof name === 'number') {
+                    // As a number, it moves the advance
+                    width = name * this._parameters.unit;
+                }
+                else {
+                    if(pen)
+                        pen.addComponent(name, transformation);
+                    width = this.getGlyphByName(name).width;
+                }
+                transformation = transformation.translate(width, 0);
+            }
+            // calculate glyph width using the current tranformation
+            return transformation.transformPoint([0, 0])[0];
+        }
+
         // the default?
         if(Array.isArray(this.drawData)) {
             let advance = this._drawPointsFromPattern(pen);
@@ -502,6 +579,7 @@ define([
         var featureTag = 'calt'
           , feature = [
                 '@numbers = [', this.getGlyphsByGroup('literal', 'number').map(g=>g.name).join(' '),'];\n'
+              , '@compatNumbers = [', this.getGlyphsByGroup('number', 'compatibility').map(g=>g.name).join(' '),'];\n'
               , '@numBelow = [', this.getGlyphsByGroup('below', 'number', 'default').map(g=>g.name).join(' '),'];\n'
               , '@setA = [', this.getGlyphsByGroup('symbol', 'setA', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setB = [', this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
@@ -509,6 +587,23 @@ define([
                             , this.getGlyphsByGroup('symbol', 'setB', 'main').map(g=>g.name).join(' '),'];\n'
               , '@setC = [', this.getGlyphsByGroup('symbol', 'setC', 'main').map(g=>g.name).join(' '),'];\n'
               , `
+
+lookup numFromCompat{
+  sub @compatNumbers by @numbers;
+}numFromCompat;
+
+# This is kind of a retrofit, to make compatibility input work. It will
+# display normal numbers instead of the numBelow + normal.guard glyphs
+# of compatibility table D, which collides with the original input method.
+# If calt (featureTag) is available, to make it operate on numbers
+# and to discern from the compatibility input method.
+feature ${featureTag} {
+    # these imply compatibility input is on purpose
+    ignore sub @compatNumbers'  @setAB;
+    # otherwise, convert to number input
+    sub @compatNumbers' lookup numFromCompat;
+}${featureTag};
+
 #########
 ## EAN 13
 
@@ -608,7 +703,7 @@ feature ${featureTag} {
 
     // UPC-E + addOn-5 from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
-    yield `   sub E.upce.marker'
+    yield `   sub .long.upce.marker'
        zero'
        ${repeat("@numbers'", 11)} lookup upcE_stop
        ${repeat('@numbers', 5)}
@@ -623,7 +718,7 @@ feature ${featureTag} {
        ;` + '\n';
     // UPC-E + addOn-2 from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
-    yield `   sub E.upce.marker'
+    yield `   sub .long.upce.marker'
        zero'
        ${repeat("@numbers'", 11)} lookup upcE_stop
        ${repeat('@numbers', 2)}
@@ -637,14 +732,14 @@ feature ${featureTag} {
        ;` + '\n';
     // UPC-E from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
-    yield `   sub E.upce.marker'
+    yield `   sub .long.upce.marker'
        zero'
        ${repeat("@numbers'", 11)} lookup upcE_stop
        ;` + '\n';
     // UPC-E + addOn-5 from short input:
     //          7 digits input, last digit is the checksum
     // User needs to enter an "e" as a marker to request an upc-e code.
-    yield `   sub e.upce.marker
+    yield `   sub .short.upce.marker
        ${repeat("@numbers'", 7)} lookup upcE_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
@@ -654,7 +749,7 @@ feature ${featureTag} {
     // UPC-E + addOn-2 from short input:
     //          7 digits input, last digit is the checksum
     // User needs to enter an "e" as a marker to request an upc-e code.
-    yield `   sub e.upce.marker
+    yield `   sub .short.upce.marker
        ${repeat("@numbers'", 7)} lookup upcE_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
@@ -663,7 +758,7 @@ feature ${featureTag} {
        ;` + '\n';
     // UPC-E + addOn-2 from short input:
     //          7 digits input, last digit is the checksum
-    yield `   sub e.upce.marker
+    yield `   sub .short.upce.marker
        ${repeat("@numbers'", 7)} lookup upcE_stop;
        ;` + '\n';
   })()
@@ -889,9 +984,9 @@ feature ${featureTag} {
 
 # Reduce UPC-3 long form to short form
 # we know as glyph state:
-#   E.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelowUpcquietzone(D12:checksum)
+#   .long.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelowUpcquietzone(D12:checksum)
 # the result of the reduction will be:
-#   E.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
+#   .long.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
 
 @numNotZero = [ ${DIGITS.filter(name=>name !== 'zero').join(' ')} ];
 
@@ -927,7 +1022,7 @@ lookup upcE_remove_single{
         for(let name2 of DIGITS)
             yield `    sub ${name1} ${name2} by ${name2};` + '\n';
     // special case!
-    yield `    sub E.upce.marker zero by E.upce.marker;` + '\n';
+    yield `    sub .long.upce.marker zero by .long.upce.marker;` + '\n';
 })()
 ,`}upcE_remove_single;
 
@@ -953,7 +1048,7 @@ feature ${featureTag} {
 #   * D7 to D10 are not encoded.
 #   * Symbol character: X1 X2 X3 X4 X5 X6
 #   * Data character:   D2 D3 D4 D5 D6 D11
-    sub E.upce.marker zero
+    sub .long.upce.marker zero
         @numbers @numbers @numbers @numbers
         @numNotZero' lookup upcE_remove_four_zeros zero' zero' zero' zero'
         [ five six seven eight nine ]
@@ -967,7 +1062,7 @@ feature ${featureTag} {
 #   * D6 to D10 are not encoded and X6 = 4.
 #   * Symbol character: X1 X2 X3 X4 X5  X6
 #   * Data character:   D2 D3 D4 D5 D11 4
-    sub E.upce.marker zero
+    sub .long.upce.marker zero
         @numbers @numbers @numbers
         @numNotZero' lookup upcE_remove_five_zeros zero'
         lookup upcE_insert_four
@@ -984,7 +1079,7 @@ feature ${featureTag} {
 #   * D5 to D8 are not encoded.
 #   * Symbol character: X1 X2 X3 X4  X5  X6
 #   * Data character:   D2 D3 D9 D10 D11 D4
-    sub E.upce.marker zero
+    sub .long.upce.marker zero
         @numbers @numbers [zero one two]'
         lookup upcE_remove_four_zeros
         # lookup upcE_case3_switch
@@ -1008,7 +1103,7 @@ feature ${featureTag} {
 #   * D5 to D9 are not encoded and X6 = 3
 #   * Symbol character: X1 X2 X3 X4  X5  X6
 #   * Data character:   D2 D3 D4 D10 D11 3
-    sub E.upce.marker zero
+    sub .long.upce.marker zero
         @numbers @numbers
         [three four five six seven eight nine]' lookup upcE_remove_five_zeros
         zero' zero' lookup upcE_insert_three
@@ -1022,13 +1117,13 @@ feature ${featureTag} {
 # Now this unifies for short input and long input:
 
 lookup upcE_start{
-    sub e.upce.marker by zero.below.upcquietzone guard.normal;
-    sub E.upce.marker by zero.below.upcquietzone guard.normal;
+    sub .short.upce.marker by zero.below.upcquietzone guard.normal;
+    sub .long.upce.marker by zero.below.upcquietzone guard.normal;
 } upcE_start;
 
 feature ${featureTag} {
-  sub E.upce.marker' lookup upcE_remove_single lookup upcE_start  zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
-  sub e.upce.marker' lookup upcE_start @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+  sub .long.upce.marker' lookup upcE_remove_single lookup upcE_start  zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+  sub .short.upce.marker' lookup upcE_start @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
 }${featureTag};
 
 
