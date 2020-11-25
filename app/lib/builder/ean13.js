@@ -90,13 +90,34 @@ define([
           , D: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
           , E: ['k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't']
         }
+        // These encodings are rather experimental, to provide a
+        // full featured fallback input method when the calt feature
+        // is not available. Took chars from:
+        // https://github.com/googlefonts/gftools/blob/master/Lib/gftools/encodings/GF%20Glyph%20Sets/GF-latin-core_unique-glyphs.nam
+      , fallbackChars: {
+            // 0x00C0 - 0x00C9
+            'ean8-setA':   ['À', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ', 'Ç', 'È', 'É']
+            // 0x00CA - 0x00D3
+          , 'ean8-setC':   ['Ê', 'Ë', 'Ì', 'Í', 'Î', 'Ï', 'Ð', 'Ñ', 'Ò', 'Ó']
+            // 0x00D4 - 0x00DD
+          , 'upcA-setA':   ['Ô', 'Õ', 'Ö', '×', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý']
+            // 0x00DE - 0x00E7
+          , 'upcA-setC':   ['Þ', 'ß', 'à', 'á', 'â', 'ã', 'ä', 'å', 'æ', 'ç']
+            // 0x00E8 - 0x00F1
+          , 'addOn-setA':  ['è', 'é', 'ê', 'ë', 'ì', 'í', 'î', 'ï', 'ð', 'ñ']
+            // 0x00F2 - 0x00FB
+          , 'addOn-setB':  ['ò', 'ó', 'ô', 'õ', 'ö', '÷', 'ø', 'ù', 'ú', 'û']
+            // 0x00FC - 0x00FF, 0x0131, 0x0152, 0x0153, 0x02C6, 0x02DA, 0x02DC
+          , 'upcQZ':       ['ü', 'ý', 'þ', 'ÿ', 'ı', 'Œ', 'œ', 'ˆ', '˚', '˜']
+            // 0x2013, 0x2014, 0x2018, 0x2019, 0x201A, 0x201C - 0x201E, 0x2022, 0x2026
+          , 'litNum':      ['–', '—', '‘', '’', '‚', '“', '”', '„', '•', '…']
+      }
     };
 
     // ['one', 'two', 'three', ...]
     const DIGITS = data.symbolsBase.map(([,,name,])=>name);
 
     (()=>{
-
       let patternTransforms = {
           'setA': pattern=>pattern.slice()
           // Set B - the patterns are the reverse of Set A
@@ -125,7 +146,7 @@ define([
                       patternTransforms[setName](pattern)
                     , `${name}.ean8.${setName}` // e.g. three.ean8.setA
                     , [setName, 'ean8', ...groups]
-                    , []
+                    , [data.fallbackChars[`ean8-${setName}`][i].charCodeAt(0)]
                   ]);
 
                   // Special layout version for UPC-A first and last pattern
@@ -137,7 +158,7 @@ define([
                       // be used in UPC-A, otherwise we'd have a duplication.
                     , `.${name}.upcA.${setName}` // e.g. .three.upcA.setA
                     , [setName, 'upcA', ...groups]
-                    , []
+                    , [data.fallbackChars[`upcA-${setName}`][i].charCodeAt(0)]
                   ]);
               }
 
@@ -147,7 +168,7 @@ define([
                       patternTransforms[setName](pattern)
                     , `${name}.addOn.${setName}` // e.g. three.addOn.setA
                     , [setName, 'addOn', ...groups]
-                    , []
+                    , [data.fallbackChars[`addOn-${setName}`][i].charCodeAt(0)]
                   ]);
           }
       }
@@ -163,9 +184,8 @@ define([
                {fromFont: true, charCode: charCode}
              , name
              , ['literal', 'number']
-             , []// [char] -> no more becaus of data.compatChars
+             , [data.fallbackChars['litNum'][value]] // [char] -> no more becaus of data.compatChars Table D
           ]);
-
           data.glyphs.push([
                // Pattern: copy a number glyph from the below-font
                // use the char code
@@ -178,7 +198,7 @@ define([
                {fromFont: true, charCode: charCode}
              , `${name}.below.upcquietzone`
              , ['below', 'number', 'upcquietzone']
-             , []
+             , [data.fallbackChars['upcQZ'][value]]
           ]);
           // compatibility Table D
           data.glyphs.push([
@@ -195,25 +215,25 @@ define([
             // Normal guard bar pattern
             // compatibility ":" (58) : Start delimiter (For SAGE software)
             [[0, 1, 1, 1], 'guard.normal', ['auxiliary', 'main', 'guard.normal'], [':']]
-          , [[0, 1, 1, 1], 'guard.normal.ean8', ['auxiliary', 'main', 'guard.normal', 'ean8'], []]
+          , [[0, 1, 1, 1], 'guard.normal.ean8', ['auxiliary', 'main', 'guard.normal', 'ean8'], [';']]
             // compatibility "+" (43) : End delimiter
           , [[0, 1, 1, 1], 'guard.normal.triggerAddOn', ['auxiliary', 'main', 'guard.normal', 'triggerAddOn'], ['+']]
             // Centre guard bar pattern
             // compatibility "*" (42) : Middle delimiter
           , [[1, 1, 1, 1, 1], 'guard.centre', ['auxiliary', 'main'], ['*']]
-          , [[1, 1, 1, 1, 1], 'guard.centre.ean8', ['auxiliary', 'main', 'ean8'], []]
+          , [[1, 1, 1, 1, 1], 'guard.centre.ean8', ['auxiliary', 'main', 'ean8'], ['|']]
             // Special guard bar pattern
             // Not accessible by compatibile mode!
-          , [[1, 1, 1, 1, 1, 1], 'guard.special', ['auxiliary', 'main', 'triggerAddOn'], []]
+          , [[1, 1, 1, 1, 1, 1], 'guard.special', ['auxiliary', 'main', 'triggerAddOn'], [']']]
             // Add-on guard bar pattern
             // compatibility "[" (91) : Start add-on delimiter
           , [[0, 1, 1, 2], 'addOn.guard.compatible', ['auxiliary', 'compatible'], ['[']]
-          , [[0, 1, 1, 2], 'addOn.guard.twoDigit', ['auxiliary', 'addOn', 'addOn.guard'], []]
-          , [[0, 1, 1, 2], 'addOn.guard.fiveDigit', ['auxiliary', 'addOn', 'addOn.guard'], []]
+          , [[0, 1, 1, 2], 'addOn.guard.twoDigit', ['auxiliary', 'addOn', 'addOn.guard'], ['(']]
+          , [[0, 1, 1, 2], 'addOn.guard.fiveDigit', ['auxiliary', 'addOn', 'addOn.guard'], ['{']]
             // Add-on delineator
             // compatibility "\" (92) : Character separator in add-on
           , [[1, 1], 'addOn.delineator.compatible', ['auxiliary', 'compatible'], ['\\']]
-          , [[1, 1], 'addOn.delineator', ['auxiliary', 'addOn'], []]
+          , [[1, 1], 'addOn.delineator', ['auxiliary', 'addOn'], ['}']]
     ]);
 
     var EAN13Glyph = (function(Parent) {
