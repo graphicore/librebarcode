@@ -1775,10 +1775,6 @@ feature ${featureTag} {
 # Add-ons (EAN)    |       7-12      |        5
 # Add-ons (U.P.C.) |       9-12      |        5
 
-
-
-
-
 lookup qietzone_main{
     # EAN-13 left needs 11 units, has 7 units advace
     pos @numBelow <0 0 ${ 4 * this.parameters.unit } 0> guard.normal;
@@ -1795,6 +1791,8 @@ lookup qietzone_addon{
     pos guard.special 0 @numBelowUpcquietzone <${ 5 * this.parameters.unit } 0 ${ 5 * this.parameters.unit } 0>;
     # Add-on EAN-13 left: needs 7-12 has 0
     pos guard.normal.triggerAddOn 0 @addOnGuards <${ 9 * this.parameters.unit } 0 ${ 9 * this.parameters.unit } 0>;
+    # in compatibility mode
+    pos guard.normal.triggerAddOn ${ 9 * this.parameters.unit} addOn.guard.compatible 0;
 }qietzone_addon;
 
 # quiet zone distances
@@ -1848,6 +1846,11 @@ feature kern {
         @numBelowUpcquietzone'
         ;
     # Add-on right: > has 5 units
+
+    # for compatibility mode
+    pos guard.normal.triggerAddOn' lookup qietzone_addon
+        addOn.guard.compatible'
+        ;
 }kern;
 
 `
