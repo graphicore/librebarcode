@@ -25,11 +25,11 @@ ASC_MODULES=70
 DESC_MODULES=10
 HEIGHT_MODULES=$(expr $ASC_MODULES + $DESC_MODULES)
 # IMPORTANT! Scales the UNIT so the modules are bigger than the UPM
-# That way the font appears bigger than the size used in the apolication
-# which I think is necessary, because word processors limit the selectable
-# font sizes e.g. to max 96pt in google docs, which would leave this font
-# pretty much unusable there.
-BLOW_UP_FACTOR=3
+# That way the font appears bigger than the size used in the application
+# which I think may be necessary in some cases, when the UI limits how much
+# a font can be scaled. However, it also is prone to break (wrong?)
+# assumptions made by appdevelopers.
+BLOW_UP_FACTOR=1
 MODULE_UNIT=$(expr $BLOW_UP_FACTOR \* $UNITS_PER_EM / $HEIGHT_MODULES) # floor( 3 * 1024 / 80 ) = 38
 
 ASCENDER=$(expr $ASC_MODULES \* $MODULE_UNIT) # 70 (~ parameters.top)
@@ -43,7 +43,7 @@ LICENSE='This Font Software is licensed under the SIL Open Font '\
 'License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL'
 LICENSE_URL='https://scripts.sil.org/OFL'
 COPYRIGHT="Copyright 2017-2019 The $FAMILY_BASE_NAME Project Authors (https://github.com/graphicore/librebarcode)"
-VERSION="Version 1.004"
+VERSION="Version 1.005"
 VERSION_MAJOR=1
 VERSION_MINOR=4
 
