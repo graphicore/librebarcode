@@ -1197,7 +1197,7 @@ feature ${featureTag} {
 #   * D11 equals 5, 6, 7, 8, or 9
 #   * and D7 to D10 inclusive are all 0
 #   * and D6 is not 0
-#   * Example:  E012345000058 => 123455
+#   * Example:  X012345000058 => 123455
 #   =>
 #   * D7 to D10 are not encoded.
 #   * Symbol character: X1 X2 X3 X4 X5 X6
@@ -1211,7 +1211,7 @@ feature ${featureTag} {
 # CASE B
 #   * D6 to D10 inclusive are all 0
 #   * and D5 is not 0
-#   * Example: E045670000080 => 456784
+#   * Example: X045670000080 => 456784
 #   =>
 #   * D6 to D10 are not encoded and X6 = 4.
 #   * Symbol character: X1 X2 X3 X4 X5  X6
@@ -1227,8 +1227,8 @@ feature ${featureTag} {
 # CASE C
 #   * D4 is 0, 1, or 2
 #   * and D5 to D8 inclusive are all 0
-#   * Example: E034000005673 => 345670
-#              E077200008889 (checksum not correct) => 778882
+#   * Example: X034000005673 => 345670
+#              X077200008889 (checksum not correct) => 778882
 #   =>
 #   * D5 to D8 are not encoded.
 #   * Symbol character: X1 X2 X3 X4  X5  X6
@@ -1251,8 +1251,8 @@ feature ${featureTag} {
 # CASE D
 #   * D4 is 3, 4, 5, 6, 7, 8, or 9
 #   * and D5 to D9 inclusive are all 0
-#   * Example: E098400000751 => 984753
-#              E077700000889 (checksum not correct) => 777883
+#   * Example: X098400000751 => 984753
+#              X077700000889 (checksum not correct) => 777883
 #   =>
 #   * D5 to D9 are not encoded and X6 = 3
 #   * Symbol character: X1 X2 X3 X4  X5  X6
