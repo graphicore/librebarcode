@@ -657,16 +657,16 @@ lookup upcA_stop {
 # EAN-13 has a special named version of guard.normal (guard.normal.triggerAddOn)
 # to allow triggering the add ons which ean-8 doesn't support.
 lookup ean8_stop {
-    sub zero by zero guard.normal.ean8;
-    sub one by one guard.normal.ean8;
-    sub two by two guard.normal.ean8;
-    sub three by three guard.normal.ean8;
-    sub four by four guard.normal.ean8;
-    sub five by five guard.normal.ean8;
-    sub six by six guard.normal.ean8;
-    sub seven by seven guard.normal.ean8;
-    sub eight by eight guard.normal.ean8;
-    sub nine by nine guard.normal.ean8;
+    sub zero by zero guard.normal.ean8 gt.below.quiet;
+    sub one by one guard.normal.ean8 gt.below.quiet;
+    sub two by two guard.normal.ean8 gt.below.quiet;
+    sub three by three guard.normal.ean8 gt.below.quiet;
+    sub four by four guard.normal.ean8 gt.below.quiet;
+    sub five by five guard.normal.ean8 gt.below.quiet;
+    sub six by six guard.normal.ean8 gt.below.quiet;
+    sub seven by seven guard.normal.ean8 gt.below.quiet;
+    sub eight by eight guard.normal.ean8 gt.below.quiet;
+    sub nine by nine guard.normal.ean8 gt.below.quiet;
 }ean8_stop;
 
 lookup upcE_stop {
@@ -785,6 +785,141 @@ feature ${featureTag} {
 ,`
 }${featureTag};
 
+# init Add-On
+# NOTE: the five digit add-on should be triggered first, otherwise, the
+# 2 didgit add on would "shadow" or negatively impair the 5 digit add-on
+# lookup wise, this can start building after a @endTriggerAddOn was
+# inserted, which is usually  the first thing we do for a barcode.
+
+
+# We need a group that holds a special version of stop guard, that
+# enables a two/five digit add on:
+#   * "guard.normal" at the end of EAN-8 must not trigger the add ons
+#   *  but "guard.normal" at the end of EAN-13, UPC-A must trigger it
+#   *  as well as "guard.special" which ends only UPC-E.
+# "guard.normal.triggerAddOn" is, despite of its name identical to
+# "guard.normal" Also good, in this case is that having an explicit
+# end-pattern that triggers the add-ons is very good to control.
+
+@numBelowUpcquietzone = [${ this.getGlyphsByGroup('below', 'number', 'upcquietzone').map(g=>g.name).join(' ')}];
+@endTriggerAddOn = [${ this.getGlyphsByGroup('triggerAddOn').map(g=>g.name).join(' ') }];
+
+lookup addOn_start_five {
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.fiveDigit;
+    sub guard.special by guard.special addOn.guard.fiveDigit;
+    sub addon.marker by addon.marker addOn.guard.fiveDigit;
+    # UPC-A, UPC-E
+    `,...(function*(){
+    for(let name of DIGITS)
+        yield `    sub ${name}.below.upcquietzone by ${name}.below.upcquietzone addOn.guard.fiveDigit;` + '\n';
+})()
+,`
+}addOn_start_five;
+
+lookup addOn_start_two {
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.twoDigit;
+    sub guard.special by guard.special addOn.guard.twoDigit;
+    sub addon.marker by addon.marker addOn.guard.twoDigit;
+    # UPC-A, UPC-E
+`,...(function*(){
+    for(let name of DIGITS)
+        yield `    sub ${name}.below.upcquietzone by ${name}.below.upcquietzone addOn.guard.twoDigit;` + '\n';
+})()
+,`}addOn_start_two;
+
+feature ${featureTag} {
+  # five digit
+  # UPC-A
+  sub guard.normal.triggerAddOn'
+      @numBelowUpcquietzone' lookup addOn_start_five
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      ;
+  # UPC-E
+  sub guard.special'
+      @numBelowUpcquietzone' lookup addOn_start_five
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      ;
+  # EAN-13 / manual
+  sub [@endTriggerAddOn addon.marker]' lookup addOn_start_five
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      @numbers
+      ;
+
+  # two digit
+  # UPC-A
+  sub guard.normal.triggerAddOn'
+      @numBelowUpcquietzone' lookup addOn_start_two
+      @numbers
+      @numbers
+      ;
+  # UPC-E
+  sub guard.special'
+      @numBelowUpcquietzone' lookup addOn_start_two
+      @numbers
+      @numbers
+      ;
+  # EAN-13 / manual
+  sub [@endTriggerAddOn addon.marker]' lookup addOn_start_two
+      @numbers
+      @numbers
+      ;
+}${featureTag};
+
+# remove manual "addon.marker"
+feature ${featureTag} {
+    sub addon.marker addOn.guard.twoDigit by addOn.guard.twoDigit;
+    sub addon.marker addOn.guard.fiveDigit by addOn.guard.fiveDigit;
+}${featureTag};
+
+
+# insert quiet zone characters lt.below.quiet, gt.below.quiet and
+# the gt.addon.quiet that is actually above after the add-ons.
+
+@addOnGuards = [${ this.getGlyphsByGroup('addOn.guard').map(g=>g.name).join(' ')}];
+
+
+lookup quietzone_insert_end {
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn gt.below.quiet;
+`,
+...(function*(builder) {
+    for(let name of DIGITS)
+        yield `    sub ${name} by ${name} gt.addon.quiet;` + '\n';
+})(this)
+,`}quietzone_insert_end;
+
+feature ${featureTag} {
+    # EAN-13 not followed by an add-on
+    ignore sub
+        @numbers @numbers @numbers @numbers @numbers @numbers
+        @numbers @numbers @numbers @numbers @numbers @numbers
+        guard.normal.triggerAddOn'
+        @addOnGuards
+        ;
+    sub
+        @numbers @numbers @numbers @numbers @numbers @numbers
+        @numbers @numbers @numbers @numbers @numbers @numbers
+        guard.normal.triggerAddOn' lookup quietzone_insert_end
+        ;
+    sub addOn.guard.fiveDigit
+        @numbers @numbers @numbers @numbers
+        @numbers' lookup quietzone_insert_end
+        ;
+    sub addOn.guard.twoDigit
+        @numbers
+        @numbers' lookup quietzone_insert_end
+        ;
+}${featureTag};
 
 # substitute one to many to insert the centre guard symbol after
 # the sixth (actually seventh before the first is removed) number in ean 13
@@ -921,7 +1056,6 @@ feature ${featureTag} {
 
 @upcASetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'upcA').map(g=>g.name).join(' ')}];
 @upcASetC = [${ this.getGlyphsByGroup('symbol', 'setC', 'upcA').map(g=>g.name).join(' ')}];
-@numBelowUpcquietzone = [${ this.getGlyphsByGroup('below', 'number', 'upcquietzone').map(g=>g.name).join(' ')}];
 
 feature ${featureTag} {
    sub @numbers
@@ -1208,16 +1342,16 @@ feature ${featureTag} {
 # substitute one to many to insert the start guard symbol before
 # the first number in ean 8.
 lookup ean8_start {
-    sub zero by guard.normal.ean8 zero;
-    sub one by guard.normal.ean8 one;
-    sub two by guard.normal.ean8 two;
-    sub three by guard.normal.ean8 three;
-    sub four by guard.normal.ean8 four;
-    sub five by guard.normal.ean8 five;
-    sub six by guard.normal.ean8 six;
-    sub seven by guard.normal.ean8 seven;
-    sub eight by guard.normal.ean8 eight;
-    sub nine by guard.normal.ean8 nine;
+    sub zero by lt.below.quiet guard.normal.ean8 zero;
+    sub one by lt.below.quiet guard.normal.ean8 one;
+    sub two by lt.below.quiet guard.normal.ean8 two;
+    sub three by lt.below.quiet guard.normal.ean8 three;
+    sub four by lt.below.quiet guard.normal.ean8 four;
+    sub five by lt.below.quiet guard.normal.ean8 five;
+    sub six by lt.below.quiet guard.normal.ean8 six;
+    sub seven by lt.below.quiet guard.normal.ean8 seven;
+    sub eight by lt.below.quiet guard.normal.ean8 eight;
+    sub nine by lt.below.quiet guard.normal.ean8 nine;
 }ean8_start;
 
 feature ${featureTag} {
@@ -1269,100 +1403,6 @@ feature ${featureTag} {
 
 
 # Add ons
-# NOTE: the five digit add-on should be triggered first, otherwise, the
-# 2 didgit add on would "shadow" or negatively impair the 5 digit add-on
-# lookup wise, this can start building after a @endTriggerAddOn was
-# inserted, which is usually  the first thing we do for a barcode.
-
-
-# We need a group that holds a special version of stop guard, that
-# enables a two/five digit add on:
-#   * "guard.normal" at the end of EAN-8 must not trigger the add ons
-#   *  but "guard.normal" at the end of EAN-13, UPC-A must trigger it
-#   *  as well as "guard.special" which ends only UPC-E.
-# "guard.normal.triggerAddOn" is, despite of its name identical to
-# "guard.normal" Also good, in this case is that having an explicit
-# end-pattern that triggers the add-ons is very good to control.
-
-@endTriggerAddOn = [${ this.getGlyphsByGroup('triggerAddOn').map(g=>g.name).join(' ') }];
-
-lookup addOn_start_five {
-    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.fiveDigit;
-    sub guard.special by guard.special addOn.guard.fiveDigit;
-    sub addon.marker by addon.marker addOn.guard.fiveDigit;
-    # UPC-A, UPC-E
-    `,...(function*(){
-    for(let name of DIGITS)
-        yield `    sub ${name}.below.upcquietzone by ${name}.below.upcquietzone addOn.guard.fiveDigit;` + '\n';
-})()
-,`
-}addOn_start_five;
-
-lookup addOn_start_two {
-    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn addOn.guard.twoDigit;
-    sub guard.special by guard.special addOn.guard.twoDigit;
-    sub addon.marker by addon.marker addOn.guard.twoDigit;
-    # UPC-A, UPC-E
-`,...(function*(){
-    for(let name of DIGITS)
-        yield `    sub ${name}.below.upcquietzone by ${name}.below.upcquietzone addOn.guard.twoDigit;` + '\n';
-})()
-,`}addOn_start_two;
-
-feature ${featureTag} {
-  # five digit
-  # UPC-A
-  sub guard.normal.triggerAddOn'
-      @numBelowUpcquietzone' lookup addOn_start_five
-      @numbers
-      @numbers
-      @numbers
-      @numbers
-      @numbers
-      ;
-  # UPC-E
-  sub guard.special'
-      @numBelowUpcquietzone' lookup addOn_start_five
-      @numbers
-      @numbers
-      @numbers
-      @numbers
-      @numbers
-      ;
-  # EAN-13 / manual
-  sub [@endTriggerAddOn addon.marker]' lookup addOn_start_five
-      @numbers
-      @numbers
-      @numbers
-      @numbers
-      @numbers
-      ;
-
-  # two digit
-  # UPC-A
-  sub guard.normal.triggerAddOn'
-      @numBelowUpcquietzone' lookup addOn_start_two
-      @numbers
-      @numbers
-      ;
-  # UPC-E
-  sub guard.special'
-      @numBelowUpcquietzone' lookup addOn_start_two
-      @numbers
-      @numbers
-      ;
-  # EAN-13 / manual
-  sub [@endTriggerAddOn addon.marker]' lookup addOn_start_two
-      @numbers
-      @numbers
-      ;
-}${featureTag};
-
-# remove manual "addon.marker"
-feature ${featureTag} {
-    sub addon.marker addOn.guard.twoDigit by addOn.guard.twoDigit;
-    sub addon.marker addOn.guard.fiveDigit by addOn.guard.fiveDigit;
-}${featureTag};
 
 @addOnSetA = [${ this.getGlyphsByGroup('symbol', 'setA', 'addOn').map(g=>g.name).join(' ')}];
 @addOnSetB = [${ this.getGlyphsByGroup('symbol', 'setB', 'addOn').map(g=>g.name).join(' ')}];
@@ -1695,74 +1735,8 @@ feature ${featureTag} {
 }${featureTag};
 
 
-# insert quiet zone characters lt.below.quiet, gt.below.quiet and
-# the gt.addon.quiet that is actually above after the add-ons.
-
-@addOnGuards = [${ this.getGlyphsByGroup('addOn.guard').map(g=>g.name).join(' ')}];
-
-lookup quietzone_insert_before {
-    sub guard.normal.ean8 by lt.below.quiet guard.normal.ean8;
-}quietzone_insert_before;
-
-lookup quietzone_insert_end {
-    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn gt.below.quiet;
-    sub guard.normal.ean8 by guard.normal.ean8 gt.below.quiet;
-`,
-...(function*(builder) {
-    for(let glyph of builder.getGlyphsByGroup('symbol', 'addOn'))
-        yield `    sub ${glyph.name} by ${glyph.name} gt.addon.quiet;` + '\n';
-})(this)
-,`}quietzone_insert_end;
-
-feature ${featureTag} {
-    # EAN-13 not followed by an add-on
-    ignore sub @numBelow
-        guard.normal
-        @setAB @setAB @setAB @setAB @setAB @setAB
-        guard.centre
-        @setC @setC @setC @setC @setC @setC
-        guard.normal.triggerAddOn'
-        @addOnGuards
-        ;
-    sub @numBelow
-        guard.normal
-        @setAB @setAB @setAB @setAB @setAB @setAB
-        guard.centre
-        @setC @setC @setC @setC @setC @setC
-        guard.normal.triggerAddOn' lookup quietzone_insert_end
-        ;
-    # EAN-8
-    sub guard.normal.ean8' lookup quietzone_insert_before
-        @ean8SetA @ean8SetA @ean8SetA @ean8SetA
-        guard.centre.ean8
-        @ean8SetC @ean8SetC @ean8SetC @ean8SetC
-        guard.normal.ean8
-        ;
-    sub addOn.guard.fiveDigit
-        @addOnSetAB addOn.delineator
-        @addOnSetAB addOn.delineator
-        @addOnSetAB addOn.delineator
-        @addOnSetAB addOn.delineator
-        @addOnSetAB' lookup quietzone_insert_end
-        ;
-    sub addOn.guard.twoDigit
-        @addOnSetAB addOn.delineator
-        @addOnSetAB' lookup quietzone_insert_end
-        ;
-}${featureTag};
-
-feature ${featureTag} {
-    # EAN-8
-    sub lt.below.quiet
-        guard.normal.ean8
-        @ean8SetA @ean8SetA @ean8SetA @ean8SetA
-        guard.centre.ean8
-        @ean8SetC @ean8SetC @ean8SetC @ean8SetC
-        guard.normal.ean8' lookup quietzone_insert_end
-        ;
-}${featureTag};
-
-
+# Quiet Zone spacing!
+#
 # From the GS-1 standard
 # Figure 5.2.3.4-1. Quiet Zone widths by version
 #
