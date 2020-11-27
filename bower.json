@@ -32,6 +32,7 @@
     "Atem-Errors": "graphicore/Atem-Errors",
     "Atem-IO": "graphicore/Atem-IO",
     "Atem-Pen-Case": "graphicore/Atem-Pen-Case",
-    "Atem-Math-Tools": "graphicore/Atem-Math-Tools"
+    "Atem-Math-Tools": "graphicore/Atem-Math-Tools",
+    "opentype.js": "^1.3.3"
   }
 }
