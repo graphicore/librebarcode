@@ -597,6 +597,11 @@ define([
 
     _p._getFeatures = function() {
         var featureTag = 'calt'
+          , repeat = (str, l, joiner)=>{
+                let res = [];
+                for(let i=0; i<l; i++) res.push(str);
+                return res.join(typeof joiner !== 'string' ? '\n       ' : joiner);
+            }
           , feature = [
                 '@numbers = [', this.getGlyphsByGroup('literal', 'number').map(g=>g.name).join(' '),'];\n'
               , '@compatNumbers = [', this.getGlyphsByGroup('number', 'compatibility').map(g=>g.name).join(' '),'];\n'
@@ -642,16 +647,6 @@ lookup ean13_stop {
     sub nine by nine guard.normal.triggerAddOn;
 }ean13_stop;
 
-lookup upcA_stop {
-`
-, ...(function*(){
-    for(let name of DIGITS)
-        yield `    sub ${name} by .${name}.upcA.setC guard.normal.triggerAddOn ${name}.below.upcquietzone;` + '\n';
-
-  })()
-, `
-}upcA_stop;
-
 # substitute one to many to insert the stop/end guard symbol after
 # the last number in ean 8, could reuse the lookup ean13_stop BUT
 # EAN-13 has a special named version of guard.normal (guard.normal.triggerAddOn)
@@ -672,9 +667,16 @@ lookup ean8_stop {
 lookup upcE_stop {
 `,...(function*(){
     for(let name of DIGITS)
-      yield `    sub ${name} by guard.special ${name}.below.upcquietzone;` + '\n';
+      yield `    sub ${name} by ${name} guard.special;` + '\n';
 })()
 ,`}upcE_stop;
+
+lookup upcE_short_stop {
+`,...(function*(){
+    for(let name of DIGITS)
+      yield `    sub ${name} by guard.special ${name}.below.upcquietzone;` + '\n';
+})()
+,`}upcE_short_stop;
 
 # In order to be able to distinguish which type of code we want to build
 # we distinguish between a different number of input @numbers and initially
@@ -711,11 +713,6 @@ lookup upcE_stop {
 
 feature ${featureTag} {
 `, ...(function*(){
-    var repeat = (str, l)=>{
-        let res = [];
-        for(let i=0; i<l; i++) res.push(str);
-        return res.join('\n       ');
-    };
     // EAN-13 + addOn-5
     yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
        ${repeat('@numbers', 5)}
@@ -729,7 +726,7 @@ feature ${featureTag} {
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // UPC-A + addOn-5
-    yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
+    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // EAN-13 + addOn-2
@@ -744,7 +741,7 @@ feature ${featureTag} {
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // UPC-A + addOn-2
-    yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
+    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // EAN-13
@@ -760,17 +757,17 @@ feature ${featureTag} {
     //          7 digits input, last digit is the checksum
     // User needs to enter an "e" as a marker to request an upc-e code.
     yield `   sub .short.upce.marker
-       ${repeat("@numbers'", 7)} lookup upcE_stop
+       ${repeat("@numbers'", 7)} lookup upcE_short_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // UPC-A
-    yield `   sub ${repeat("@numbers'", 12)} lookup upcA_stop
+    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
        ;` + '\n';
     // UPC-E + addOn-2 from short input:
     //          7 digits input, last digit is the checksum
     // User needs to enter an "e" as a marker to request an upc-e code.
     yield `   sub .short.upce.marker
-       ${repeat("@numbers'", 7)} lookup upcE_stop
+       ${repeat("@numbers'", 7)} lookup upcE_short_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // EAN-8
@@ -779,11 +776,60 @@ feature ${featureTag} {
     // UPC-E + addOn-2 from short input:
     //          7 digits input, last digit is the checksum
     yield `   sub .short.upce.marker
-       ${repeat("@numbers'", 7)} lookup upcE_stop;
+       ${repeat("@numbers'", 7)} lookup upcE_short_stop;
        ;` + '\n';
   })()
 ,`
 }${featureTag};
+
+
+# finish UPC-A/UPC-E endings
+# this class is used further below, but it can't be defined here
+# seems like a fontTools bug. otherwise, this would be "@upcASetC_"
+# and the other definition could be removed.
+@upcASetC_ = [${ this.getGlyphsByGroup('symbol', 'setC', 'upcA').map(g=>g.name).join(' ')}];
+
+lookup upcA_stop_setC{
+    sub @numbers by @upcASetC_;
+}upcA_stop_setC;
+
+`, ...(function*(){
+    for(let name of DIGITS) {
+      yield `
+lookup upc_stop_quitetzone_${name} {
+    sub guard.normal.triggerAddOn by guard.normal.triggerAddOn ${name}.below.upcquietzone;
+    sub guard.special by guard.special ${name}.below.upcquietzone;
+}upc_stop_quitetzone_${name};` + '\n';
+    }
+})()
+,`
+
+# UPC-A finalize stop
+feature ${featureTag} {
+`, ...(function*(){
+    // ignore 13 EAN-13 input numbers
+    yield `ignore sub ${repeat("@numbers'", 13)} guard.normal.triggerAddOn;` + '\n';
+    for(let name of DIGITS)
+        yield `    sub ${repeat('@numbers', 11)} ` + '\n'
+            + `        ${name}' lookup upcA_stop_setC guard.normal.triggerAddOn' ` + '\n'
+            + `        lookup upc_stop_quitetzone_${name};` + '\n';
+})()
+, `}${featureTag};
+
+lookup upce_stop_remove_num{
+    sub @numbers guard.special by guard.special;
+}upce_stop_remove_num;
+
+# UPC-E finalize stop
+feature ${featureTag} {
+`, ...(function*(){
+      for(let name of DIGITS)
+          yield `    sub ${repeat('@numbers', 11)} ${name}' `+ '\n'
+              + `        lookup upce_stop_remove_num `+ '\n'
+              + `        lookup upc_stop_quitetzone_${name} guard.special';` + '\n';
+})()
+, `}${featureTag};
+
 
 # init Add-On
 # NOTE: the five digit add-on should be triggered first, otherwise, the
@@ -809,7 +855,7 @@ lookup addOn_start_five {
     sub guard.special by guard.special addOn.guard.fiveDigit;
     sub addon.marker by addon.marker addOn.guard.fiveDigit;
     # UPC-A, UPC-E
-    `,...(function*(){
+    `, ...(function*(){
     for(let name of DIGITS)
         yield `    sub ${name}.below.upcquietzone by ${name}.below.upcquietzone addOn.guard.fiveDigit;` + '\n';
 })()
@@ -892,10 +938,10 @@ feature ${featureTag} {
 lookup quietzone_insert_end {
     sub guard.normal.triggerAddOn by guard.normal.triggerAddOn gt.below.quiet;
 `,
-...(function*(builder) {
+...(function*() {
     for(let name of DIGITS)
         yield `    sub ${name} by ${name} gt.addon.quiet;` + '\n';
-})(this)
+})()
 ,`}quietzone_insert_end;
 
 feature ${featureTag} {
