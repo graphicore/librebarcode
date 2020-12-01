@@ -109,12 +109,12 @@
         function checksumGTIN(digits) {
             // Must be right-alligned so the odd-even rule works correctly
             // also for even length input, hence the .slice().reverse().
-            var [sumEven, sumOdd] = digits.slice().reverse().reduce(
+            var [sumOdd, sumEven] = digits.slice().reverse().reduce(
                 (accumulator, currentValue, i)=>{
                     accumulator[i % 2] += currentValue;
                     return accumulator;
                 }, [0, 0]);
-            return 10 - (sumEven + sumOdd * 3) % 10;
+            return (10 - ((sumEven + sumOdd * 3) % 10)) % 10;
         }
 
         const charSets = {
@@ -328,16 +328,17 @@
             }
 
             for(let [title, inputs] of [
-                              ['EAN-13',         '0012345678905']
-                            , ['EAN-13 + 2'     , '001234567890512']
-                            , ['EAN-13 + 5'     , '001234567890512345']
-                            , ['+ 5'            , '-12345']
-                            , ['EAN-8'          , '12345678']
-                            , ['UPC-A'          , '012345678905']
+                              ['EAN-13',             '0012345678905']
+                            , ['EAN-13 + 2'         , '001234567890512']
+                            , ['EAN-13 + 5'         , '001234567890512345']
+                            , ['+ 5'                , '-12345']
+                            , ['EAN-8'              , '12345678']
+                            , ['UPC-A'              , '012345678905']
+                            , ['UPC-A (B)'          , '602517437036']
                             , ['UPC-E long (A)'     , 'X012345000058']
-                            , ['UPC-E long (B)'     , 'X04567000008062']
+                            , ['UPC-E long (B) + 2' , 'X04567000008062']
                             , ['UPC-E long (3)'     , 'X034000005673']
-                            , ['UPC-E long (4)'     , 'X09840000075183611']
+                            , ['UPC-E long (4) + 5' , 'X09840000075183611']
                             ]) {
                 inputs = inputs.split(' ');
                 let outputs = []
