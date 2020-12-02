@@ -328,17 +328,19 @@
             }
 
             for(let [title, inputs] of [
-                              ['EAN-13',             '0012345678905']
-                            , ['EAN-13 + 2'         , '001234567890512']
-                            , ['EAN-13 + 5'         , '001234567890512345']
-                            , ['+ 5'                , '-12345']
-                            , ['EAN-8'              , '12345678']
-                            , ['UPC-A'              , '012345678905']
-                            , ['UPC-A (B)'          , '602517437036']
-                            , ['UPC-E long (A)'     , 'X012345000058']
-                            , ['UPC-E long (B) + 2' , 'X04567000008062']
-                            , ['UPC-E long (3)'     , 'X034000005673']
-                            , ['UPC-E long (4) + 5' , 'X09840000075183611']
+                              ['EAN-13 chksm 5'             , '001234567890']
+                            , ['EAN-13 chksm 5 + 2'         , '00123456789012']
+                            , ['EAN-13 chksm 5 + 5'         , '00123456789012345']
+                            , ['+ 5'                        , '-12345']
+                            , ['EAN-8 chksm 0'              , '1234567']
+                            , ['EAN-8 chksm 7'              , '9031101']
+                            , ['EAN-8 chksm 2'              , '0154684']
+                            , ['UPC-A chksm 5'              , '01234567890']
+                            , ['UPC-A (B) chksm 6'          , '60251743703']
+                            , ['UPC-E long (A) chksm 8'     , 'X01234500005']
+                            , ['UPC-E long (B) chksm 0 + 2' , 'X0456700000862']
+                            , ['UPC-E long (C) chksm 3'     , 'X03400000567']
+                            , ['UPC-E long (D) chksm 1 + 5' , 'X0984000007583611']
                             ]) {
                 inputs = inputs.split(' ');
                 let outputs = []
@@ -362,7 +364,7 @@
                     }
                     if(compatInput) {
                         try {
-                            compats.push(compatibleEncoding(compatInput));
+                            compats.push(compatibleEncoding(compatInput, true));
                         }
                         catch(e) {
                             console.warn(`compatibleEncoding had an error with "${compatInput}":`, e);
@@ -377,7 +379,7 @@
                 insertBarcodes(
                     title
                   , [`in: ${input}`, input]
-                  , [`out: ${output}`, output]
+                  , [`fallback: ${output}`, output]
                   , ...(compat.length ? [[`compat: ${compat}`, compat, true]] : [])
                 );
             }

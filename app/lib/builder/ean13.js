@@ -685,9 +685,9 @@ lookup upcE_short_stop {
 #
 # Luckily most combinations can be decided without colisions. UPC-E is the
 # exception, but that is be handled with a special marker anyways!
-#     * E marks a full UPC-compatible(!) GTIN-12 as input
-#     * e marks a short 7 digit input, the encoded numbers plus checksum.
-# To ensure a UPC-E is indeed scannable using E is preferable, because
+#     * X marks a full UPC-compatible(!) GTIN-12 as input
+#     * x marks a short 7 digit input, the encoded numbers plus checksum.
+# To ensure a UPC-E is indeed scannable using X is preferable, because
 # it will not encode properly if it is incompatible!
 #
 #
@@ -699,22 +699,26 @@ lookup upcE_short_stop {
 # --------------------    --------
 #  EAN-13 + addOn-5       18   17
 #  UPC-A + addOn-5        17   16
-#  (E + UPC-E + addOn-5   17   16)
+#  (X + UPC-E + addOn-5   17   16)
 #  EAN-13 + addOn-2       15   14
 #  UPC-A + addOn-2        14   13
-#  (E + UPC-E + addOn-2   14   13)
+#  (X + UPC-E + addOn-2   14   13)
 #  EAN-13                 13   12
 #  UPC-A                  12   11
-#  (E + UPC-E             12   11)
-#  (e + UPC-E + addOn-5   12   impossible)
-#  (e + UPC-E + addOn-2    9   impossible)
+#  (X + UPC-E             12   11)
+#  (x + UPC-E + addOn-5   12   hard*)
+#  (x + UPC-E + addOn-2    9   hard*)
 #  EAN-8                   8    7
-#  (e + UPC-E              7   impossible)
+#  (x + UPC-E              7   hard*)
+#
+# * TODO: To calculate the checksum of UPC-E it's necessary to first expand
+#         it to its UPC-A form, then replace the short marker with the long marker.
+#         The UPC-E-long form will calculate the checksum.
 
 feature ${featureTag} {
 `, ...(function*(){
     // EAN-13 + addOn-5
-    yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
+    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
 
@@ -722,36 +726,36 @@ feature ${featureTag} {
     // User needs to enter an "E" as a marker to request an upc-e code
     yield `   sub .long.upce.marker'
        zero'
-       ${repeat("@numbers'", 11)} lookup upcE_stop
+       ${repeat("@numbers'", 10)} lookup upcE_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // UPC-A + addOn-5
-    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
+    yield `   sub ${repeat("@numbers'", 11)} lookup ean13_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // EAN-13 + addOn-2
-    yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
+    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // UPC-E + addOn-2 from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
     yield `   sub .long.upce.marker'
        zero'
-       ${repeat("@numbers'", 11)} lookup upcE_stop
+       ${repeat("@numbers'", 10)} lookup upcE_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // UPC-A + addOn-2
-    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
+    yield `   sub ${repeat("@numbers'", 11)} lookup ean13_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // EAN-13
-    yield `   sub ${repeat("@numbers'", 13)} lookup ean13_stop
+    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
        ;` + '\n';
     // UPC-E from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
     yield `   sub .long.upce.marker'
        zero'
-       ${repeat("@numbers'", 11)} lookup upcE_stop
+       ${repeat("@numbers'", 10)} lookup upcE_stop
        ;` + '\n';
     // UPC-E + addOn-5 from short input:
     //          7 digits input, last digit is the checksum
@@ -761,7 +765,7 @@ feature ${featureTag} {
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // UPC-A
-    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
+    yield `   sub ${repeat("@numbers'", 11)} lookup ean13_stop
        ;` + '\n';
     // UPC-E + addOn-2 from short input:
     //          7 digits input, last digit is the checksum
@@ -770,17 +774,121 @@ feature ${featureTag} {
        ${repeat("@numbers'", 7)} lookup upcE_short_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
-    // EAN-8
-    yield `   sub ${repeat("@numbers'", 8)} lookup ean8_stop
-       ;` + '\n';
     // UPC-E + addOn-2 from short input:
     //          7 digits input, last digit is the checksum
     yield `   sub .short.upce.marker
        ${repeat("@numbers'", 7)} lookup upcE_short_stop;
        ;` + '\n';
+    // EAN-8
+    yield `   sub ${repeat("@numbers'", 7)} lookup ean8_stop
+       ;` + '\n';
+
   })()
 ,`
 }${featureTag};
+
+
+# calculate and insert main symbol checksums:
+
+`,...(function*(){
+    for(let nameRes of DIGITS) {
+        yield `# Insert intermediate results as @numBelow and the checksum as @numbers.` + '\n';
+        yield `lookup insert_result_${nameRes} {` + '\n';
+        for(let nameContext of DIGITS) {
+            yield `    sub ${nameContext} by ${nameContext} ${nameRes}.below;` + '\n';
+            yield `    sub ${nameContext}.below by ${nameContext}.below ${nameRes};` + '\n';
+        }
+        yield `}insert_result_${nameRes};` + '\n\n';
+    }
+
+    // init step 1.1
+    yield `feature ${featureTag} {` + '\n';
+        for(let name of DIGITS){
+            // EAN 13: 12 numbers without checksum
+            // Skip first, as it is wrongly aligned for the ood-even rule
+            // i.e. from the right it is even, but from the left
+            // it is odd (must be even).
+            yield `    sub @numbers ` + '\n'
+                + `        ${name}' lookup insert_result_${name} ` + '\n'
+                + `        ${repeat("@numbers", 10)} guard.normal.triggerAddOn;` + '\n';
+            // UPC-A/E(-long): 11 numbers without checksum
+            yield `    sub ${name}' lookup insert_result_${name} `
+                + `${repeat("@numbers", 10)} [guard.normal.triggerAddOn guard.special];` + '\n';
+            // EAN-8: 7 numbers without checksum
+            yield `    sub ${name}' lookup insert_result_${name} `
+                + `${repeat("@numbers", 6)} guard.normal.ean8;` + '\n';
+        }
+    yield `}${featureTag};` + '\n\n';
+
+    // rolling addition step 1.2
+    yield `feature ${featureTag} {` + '\n';
+    for(let i=0;i<10;i++) {
+        for(let j=0;j<10;j++) {
+            let d1 = DIGITS[i]
+              , d2 = DIGITS[j]
+              , r = DIGITS[(i + j) % 10]
+              ;
+            yield `    sub ${d1}.below @numbers ${d2}' lookup insert_result_${r};` + '\n';
+        }
+    }
+    yield `}${featureTag};` + '\n\n';
+
+    // init step 2.1
+    yield `feature ${featureTag} {` + '\n';
+        for(let name of DIGITS) {
+            // EAN 13
+            yield `    sub ${name}' lookup insert_result_${name} ` + '\n'
+                + `        ${repeat("@numbers @numBelow @numbers", 5)}` + '\n'
+                + `        @numbers @numBelow guard.normal.triggerAddOn;` + '\n';
+            // UPC-A/E(-long)
+            yield `    sub @numbers @numBelow ${name}' lookup insert_result_${name} ` + '\n'
+                + `        ${repeat("@numbers @numBelow @numbers", 4)}` + '\n'
+                + `        @numbers @numBelow [guard.special guard.normal.triggerAddOn];` + '\n';
+            // EAN-8
+            yield `    sub @numbers @numBelow ${name}' lookup insert_result_${name} ` + '\n'
+                + `        ${repeat("@numbers @numBelow @numbers", 2)}` + '\n'
+                + `        @numbers @numBelow [guard.normal.ean8];` + '\n';
+        }
+    yield `}${featureTag};` + '\n\n';
+
+    // rolling addition step 2.2
+    yield `feature ${featureTag} {` + '\n';
+    for(let i=0;i<10;i++) {
+        for(let j=0;j<10;j++) {
+            let d1 = DIGITS[i]
+              , d2 = DIGITS[j]
+              , r = DIGITS[(i + j) % 10]
+              ;
+            yield `    sub ${d1}.below @numbers @numBelow ${d2}' lookup insert_result_${r} @numbers;` + '\n';
+
+        }
+    }
+    yield `}${featureTag};` + '\n\n';
+
+    // insert checksum
+    yield `feature ${featureTag} {` + '\n';
+    for(let i=0;i<10;i++) {
+        for(let j=0;j<10;j++) {
+            let d1 = DIGITS[i]
+              , d2 = DIGITS[j]
+              , r = DIGITS[(10 - ((i + j * 3) % 10)) % 10]
+              ;
+            // i/d1 -> even
+            // j/d2 -> odd
+            yield `    sub ${d1}.below @numbers ${d2}.below' lookup insert_result_${r} `
+                + `        [guard.normal.ean8 guard.special guard.normal.triggerAddOn];` + '\n';
+        }
+    }
+    yield `}${featureTag};` + '\n\n';
+
+    // cleanup
+    yield `feature ${featureTag} {` + '\n';
+    for(let name of DIGITS) {
+        yield  `    sub ${name} @numBelow by ${name};` + '\n';
+    }
+    yield `}${featureTag};` + '\n\n';
+})(),`
+# done calculating checksums
 
 
 # finish UPC-A/UPC-E endings
@@ -1186,7 +1294,7 @@ feature ${featureTag} {
 # we know as glyph state:
 #   .long.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelowUpcquietzone(D12:checksum)
 # the result of the reduction will be:
-#   .long.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
+#   .short.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
 
 @numNotZero = [ ${DIGITS.filter(name=>name !== 'zero').join(' ')} ];
 
