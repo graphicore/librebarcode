@@ -1,0 +1,35 @@
+{
+  "name": "opentype.js",
+  "main": "dist/opentype.js",
+  "version": "1.3.3",
+  "keywords": [
+    "graphics",
+    "fonts",
+    "opentype",
+    "otf",
+    "ttf",
+    "woff",
+    "type"
+  ],
+  "ignore": [
+    ".jshintignore",
+    ".jshintrc",
+    "build",
+    "g",
+    "src",
+    "test",
+    "*.html"
+  ],
+  "dependencies": {},
+  "homepage": "https://github.com/nodebox/opentype.js",
+  "_release": "1.3.3",
+  "_resolution": {
+    "type": "version",
+    "tag": "1.3.3",
+    "commit": "d1a83958d95bf41334a24c0cdd832b9c7e1acdd3"
+  },
+  "_source": "https://github.com/nodebox/opentype.js.git",
+  "_target": "^1.3.3",
+  "_originalSource": "opentype.js",
+  "_direct": true
+}
