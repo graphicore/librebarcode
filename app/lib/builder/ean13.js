@@ -835,27 +835,8 @@ feature ${featureTag} {
        zero'
        ${repeat("@numbers'", 10)} lookup upcE_stop
        ;` + '\n';
-    // UPC-E + addOn-5 from short input:
-    //          7 digits input, last digit is the checksum
-    // User needs to enter an "e" as a marker to request an upc-e code.
-    yield `   sub .short.upce.marker
-       ${repeat("@numbers'", 7)} lookup upcE_short_stop
-       ${repeat('@numbers', 5)}
-       ;` + '\n';
     // UPC-A
     yield `   sub ${repeat("@numbers'", 11)} lookup ean13_stop
-       ;` + '\n';
-    // UPC-E + addOn-2 from short input:
-    //          7 digits input, last digit is the checksum
-    // User needs to enter an "e" as a marker to request an upc-e code.
-    yield `   sub .short.upce.marker
-       ${repeat("@numbers'", 7)} lookup upcE_short_stop
-       ${repeat('@numbers', 2)}
-       ;` + '\n';
-    // UPC-E from short input:
-    //          7 digits input, last digit is the checksum
-    yield `   sub .short.upce.marker
-       ${repeat("@numbers'", 7)} lookup upcE_short_stop;
        ;` + '\n';
     // EAN-8
     yield `   sub ${repeat("@numbers'", 7)} lookup ean8_stop
@@ -1368,11 +1349,11 @@ feature ${featureTag} {
 ########
 ## UPC-E
 
-# Reduce UPC-3 long form to short form
+# Reduce UPC-E long form to short form
 # we know as glyph state:
 #   .long.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelowUpcquietzone(D12:checksum)
 # the result of the reduction will be:
-#   .short.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
+#   .long.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
 
 @numNotZero = [ ${DIGITS.filter(name=>name !== 'zero').join(' ')} ];
 
@@ -1412,7 +1393,7 @@ lookup upcE_remove_single{
 })()
 ,`}upcE_remove_single;
 
-lookup upcE_case3_switch {
+lookup upcE_caseC_switch {
 `,...(function*(){
     for(let name1 of ['zero', 'one', 'two']) {
         for(let name2 of DIGITS) {
@@ -1421,7 +1402,7 @@ lookup upcE_case3_switch {
         }
     }
 })()
-,`}upcE_case3_switch;
+,`}upcE_caseC_switch;
 
 feature ${featureTag} {
 # Rules for the reduction:
@@ -1468,14 +1449,14 @@ feature ${featureTag} {
     sub .long.upce.marker zero
         @numbers @numbers [zero one two]'
         lookup upcE_remove_four_zeros
-        # lookup upcE_case3_switch
+        # lookup upcE_caseC_switch
         # after removing four we need to manipulate the positions that
         # have been occupied by zeros before, hence it appears that
-        # we "upcE_case3_switch" with zeros, but it's defacto switching
+        # we "upcE_caseC_switch" with zeros, but it's defacto switching
         # with those positions where the zeros have been initially.
-        lookup upcE_case3_switch
-        zero' lookup upcE_case3_switch
-        zero' lookup upcE_case3_switch
+        lookup upcE_caseC_switch
+        zero' lookup upcE_caseC_switch
+        zero' lookup upcE_caseC_switch
         zero' zero'
         @numbers' @numbers' @numbers'
         guard.special
@@ -1503,13 +1484,11 @@ feature ${featureTag} {
 # Now this unifies for short input and long input:
 
 lookup upcE_start{
-    sub .short.upce.marker by zero.below.upcquietzone guard.normal;
     sub .long.upce.marker by zero.below.upcquietzone guard.normal;
 } upcE_start;
 
 feature ${featureTag} {
-  sub .long.upce.marker' lookup upcE_remove_single lookup upcE_start  zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
-  sub .short.upce.marker' lookup upcE_start @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+  sub .long.upce.marker' lookup upcE_remove_single lookup upcE_start zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
 }${featureTag};
 
 
