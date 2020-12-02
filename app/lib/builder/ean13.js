@@ -706,14 +706,92 @@ lookup upcE_short_stop {
 #  EAN-13                 13   12
 #  UPC-A                  12   11
 #  (X + UPC-E             12   11)
-#  (x + UPC-E + addOn-5   12   hard*)
-#  (x + UPC-E + addOn-2    9   hard*)
+#  (x + UPC-E + addOn-5   12   11)
+#  (x + UPC-E + addOn-2    9   8)
 #  EAN-8                   8    7
-#  (x + UPC-E              7   hard*)
+#  (x + UPC-E              7   6)
+
+
+
+# UPC-E-short to UPC-E-long
+# To calculate the checksum of UPC-E it's necessary to first expand
+# it to its UPC-A form, then replace the short marker with the long marker.
+# The UPC-E-long form will calculate the checksum.
 #
-# * TODO: To calculate the checksum of UPC-E it's necessary to first expand
-#         it to its UPC-A form, then replace the short marker with the long marker.
-#         The UPC-E-long form will calculate the checksum.
+# Here's the info from the spec:
+#                 5.2.2.4.2 Decoding a UPC-E barcode
+#        Encoded UPC-E
+#       barcode digits      =>             Decoded number
+#     P1 P2 P3 P4 P5 P6     =>  D1 D2 D3 D4 D5 D6 D7 D8 D9 D10 D11 D12
+# --------------------------------------------------------------------
+# (0) X1 X2 X3 X4 X5  0 (0) => (0) X1 X2  0  0  0  0  0 X3  X4  X5 (C)
+# (0) X1 X2 X3 X4 X5  1 (0) => (0) X1 X2  1  0  0  0  0 X3  X4  X5 (C)
+# (0) X1 X2 X3 X4 X5  2 (0) => (0) X1 X2  2  0  0  0  0 X3  X4  X5 (C)
+# (0) X1 X2 X3 X4 X5  3 (0) => (0) X1 X2 X3  0  0  0  0  0  X4  X5 (C)
+# (0) X1 X2 X3 X4 X5  4 (0) => (0) X1 X2 X3 X4  0  0  0  0   0  X5 (C)
+# (0) X1 X2 X3 X4 X5  5 (0) => (0) X1 X2 X3 X4 X5  0  0  0   0   5 (C)
+# (0) X1 X2 X3 X4 X5  6 (0) => (0) X1 X2 X3 X4 X5  0  0  0   0   6 (C)
+# (0) X1 X2 X3 X4 X5  7 (0) => (0) X1 X2 X3 X4 X5  0  0  0   0   7 (C)
+# (0) X1 X2 X3 X4 X5  8 (0) => (0) X1 X2 X3 X4 X5  0  0  0   0   8 (C)
+# (0) X1 X2 X3 X4 X5  9 (0) => (0) X1 X2 X3 X4 X5  0  0  0   0   9 (C)
+
+lookup upce_insert_5_zeros{
+`,...(function*(){
+  for(let name of DIGITS)
+      yield  `    sub ${name} by ${name} zero zero zero zero zero;` + '\n';
+})()
+,`}upce_insert_5_zeros;
+
+lookup upce_insert_one_4_zeros{
+`,...(function*(){
+  for(let name of DIGITS)
+      yield  `    sub ${name} by ${name} one zero zero zero zero;` + '\n';
+})()
+,`}upce_insert_one_4_zeros;
+
+lookup upce_insert_two_4_zeros{
+`,...(function*(){
+  for(let name of DIGITS)
+      yield  `    sub ${name} by ${name} two zero zero zero zero;` + '\n';
+})()
+,`}upce_insert_two_4_zeros;
+
+lookup upce_insert_4_zeros{
+`,...(function*(){
+  for(let name of DIGITS)
+      yield  `    sub ${name} by ${name} zero zero zero zero;` + '\n';
+})()
+,`}upce_insert_4_zeros;
+
+
+@numbers_5_9 = [ ${ DIGITS.slice(-5).join(' ') } ];
+feature ${featureTag} {
+    sub .short.upce.marker @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers @numbers ${DIGITS[0]};
+    sub .short.upce.marker @numbers @numbers' lookup upce_insert_one_4_zeros @numbers @numbers @numbers ${DIGITS[1]};
+    sub .short.upce.marker @numbers @numbers' lookup upce_insert_two_4_zeros @numbers @numbers @numbers ${DIGITS[2]};
+    sub .short.upce.marker @numbers @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers ${DIGITS[3]};
+    sub .short.upce.marker @numbers @numbers @numbers @numbers' lookup upce_insert_5_zeros  @numbers ${DIGITS[4]};
+    sub .short.upce.marker @numbers @numbers @numbers @numbers @numbers' lookup upce_insert_4_zeros @numbers_5_9;
+}${featureTag};
+
+lookup upce_remove_last{
+`,...(function*(){
+  for(let name of DIGITS)
+      yield  `    sub ${name} @numbers by ${name};` + '\n';
+})()
+,`}upce_remove_last;
+
+@numbers_0_4 = [ ${ DIGITS.slice(0, 5).join(' ') } ];
+feature ${featureTag} {
+    sub .short.upce.marker ${repeat('@numbers', 9, ' ')}
+        @numbers' lookup upce_remove_last @numbers_0_4';
+}${featureTag};
+
+# Finalize UPC-E-short input to UPC-E-long input conversion:
+feature ${featureTag} {
+    sub .short.upce.marker by .long.upce.marker zero;
+}${featureTag};
+
 
 feature ${featureTag} {
 `, ...(function*(){
@@ -774,7 +852,7 @@ feature ${featureTag} {
        ${repeat("@numbers'", 7)} lookup upcE_short_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
-    // UPC-E + addOn-2 from short input:
+    // UPC-E from short input:
     //          7 digits input, last digit is the checksum
     yield `   sub .short.upce.marker
        ${repeat("@numbers'", 7)} lookup upcE_short_stop;
