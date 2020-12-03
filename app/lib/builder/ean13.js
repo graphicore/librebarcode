@@ -38,8 +38,8 @@ define([
             // * [groups]: used to select groups of glyphs
             // * targetChars ['c', 'h', 'a', 'r', 's'] => maybe needs to be done differently here
             [[9], 'space', [], [' ']] // 9 * unit ... drawn as a space
-          , [{fromFont: true, charCode: 'x'.charCodeAt(0)}, '.short.upce.marker', [], ['x']]
-          , [{fromFont: true, charCode: 'X'.charCodeAt(0)}, '.long.upce.marker', [], ['X']]
+          , [{fromFont: true, charCode: 'x'.charCodeAt(0)}, 'shortUPCE.marker', [], ['x']]
+          , [{fromFont: true, charCode: 'X'.charCodeAt(0)}, 'longUPCE.marker', [], ['X']]
             // Manually trigger add-ons, for EAN-13, UPC-A, UPC-E this is not necessary
             // but e.g. foe special stand alne or maybe even non-standard use after ean-8
           , [{fromFont: true, charCode: '-'.charCodeAt(0)}, 'addon.marker', [], ['-']]
@@ -152,11 +152,11 @@ define([
                   // Special layout version for UPC-A first and last pattern
                   data.glyphs.push([
                       patternTransforms[setName](pattern)
-                      // Prefixed with an "." to remove the glyph name from
+                      // Naed in a way to remove the glyph name from
                       // the AGLFN interpretation of the glyph sting.
                       // Instead, the names of the quiet zone numbers will
                       // be used in UPC-A, otherwise we'd have a duplication.
-                    , `.${name}.upcA.${setName}` // e.g. .three.upcA.setA
+                    , `x${name}.upcA.${setName}` // e.g. .three.upcA.setA
                     , [setName, 'upcA', ...groups]
                     , [data.fallbackChars[`upcA-${setName}`][i].charCodeAt(0)]
                   ]);
@@ -692,8 +692,8 @@ lookup upcE_short_stop {
 #
 #
 #  Column AA: with explicit check sum
-#  Column BB: if we would calculate the checksum (last digit) on the fly
-#             input length could be reduced by 1. (But that's fairly complex.)
+#  Column BB: calculating the checksum (last digit) on the fly
+#             reduces input length by 1.
 #
 #  COMBINATIONS           AA   BB
 # --------------------    --------
@@ -707,9 +707,9 @@ lookup upcE_short_stop {
 #  UPC-A                  12   11
 #  (X + UPC-E             12   11)
 #  (x + UPC-E + addOn-5   12   11)
-#  (x + UPC-E + addOn-2    9   8)
+#  (x + UPC-E + addOn-2    9    8)
 #  EAN-8                   8    7
-#  (x + UPC-E              7   6)
+#  (x + UPC-E              7    6)
 
 
 
@@ -766,12 +766,12 @@ lookup upce_insert_4_zeros{
 
 @numbers_5_9 = [ ${ DIGITS.slice(-5).join(' ') } ];
 feature ${featureTag} {
-    sub .short.upce.marker @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers @numbers ${DIGITS[0]};
-    sub .short.upce.marker @numbers @numbers' lookup upce_insert_one_4_zeros @numbers @numbers @numbers ${DIGITS[1]};
-    sub .short.upce.marker @numbers @numbers' lookup upce_insert_two_4_zeros @numbers @numbers @numbers ${DIGITS[2]};
-    sub .short.upce.marker @numbers @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers ${DIGITS[3]};
-    sub .short.upce.marker @numbers @numbers @numbers @numbers' lookup upce_insert_5_zeros  @numbers ${DIGITS[4]};
-    sub .short.upce.marker @numbers @numbers @numbers @numbers @numbers' lookup upce_insert_4_zeros @numbers_5_9;
+    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers @numbers ${DIGITS[0]};
+    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_one_4_zeros @numbers @numbers @numbers ${DIGITS[1]};
+    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_two_4_zeros @numbers @numbers @numbers ${DIGITS[2]};
+    sub shortUPCE.marker @numbers @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers ${DIGITS[3]};
+    sub shortUPCE.marker @numbers @numbers @numbers @numbers' lookup upce_insert_5_zeros  @numbers ${DIGITS[4]};
+    sub shortUPCE.marker @numbers @numbers @numbers @numbers @numbers' lookup upce_insert_4_zeros @numbers_5_9;
 }${featureTag};
 
 lookup upce_remove_last{
@@ -783,13 +783,13 @@ lookup upce_remove_last{
 
 @numbers_0_4 = [ ${ DIGITS.slice(0, 5).join(' ') } ];
 feature ${featureTag} {
-    sub .short.upce.marker ${repeat('@numbers', 9, ' ')}
+    sub shortUPCE.marker ${repeat('@numbers', 9, ' ')}
         @numbers' lookup upce_remove_last @numbers_0_4';
 }${featureTag};
 
 # Finalize UPC-E-short input to UPC-E-long input conversion:
 feature ${featureTag} {
-    sub .short.upce.marker by .long.upce.marker zero;
+    sub shortUPCE.marker by longUPCE.marker zero;
 }${featureTag};
 
 
@@ -802,7 +802,7 @@ feature ${featureTag} {
 
     // UPC-E + addOn-5 from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
-    yield `   sub .long.upce.marker'
+    yield `   sub longUPCE.marker'
        zero'
        ${repeat("@numbers'", 10)} lookup upcE_stop
        ${repeat('@numbers', 5)}
@@ -817,7 +817,7 @@ feature ${featureTag} {
        ;` + '\n';
     // UPC-E + addOn-2 from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
-    yield `   sub .long.upce.marker'
+    yield `   sub longUPCE.marker'
        zero'
        ${repeat("@numbers'", 10)} lookup upcE_stop
        ${repeat('@numbers', 2)}
@@ -831,7 +831,7 @@ feature ${featureTag} {
        ;` + '\n';
     // UPC-E from suitable UPC-A
     // User needs to enter an "E" as a marker to request an upc-e code
-    yield `   sub .long.upce.marker'
+    yield `   sub longUPCE.marker'
        zero'
        ${repeat("@numbers'", 10)} lookup upcE_stop
        ;` + '\n';
@@ -1293,7 +1293,7 @@ lookup upcA_start {
 `
 , ...(function*(){
     for(let name of DIGITS)
-        yield `    sub ${name} by ${name}.below.upcquietzone guard.normal .${name}.upcA.setA;` + '\n';
+        yield `    sub ${name} by ${name}.below.upcquietzone guard.normal x${name}.upcA.setA;` + '\n';
   })()
 , `
 }upcA_start;
@@ -1351,9 +1351,9 @@ feature ${featureTag} {
 
 # Reduce UPC-E long form to short form
 # we know as glyph state:
-#   .long.upce.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelowUpcquietzone(D12:checksum)
+#   longUPCE.marker zero(D1) 10x@numbers(D2-D11) marker.special @numBelowUpcquietzone(D12:checksum)
 # the result of the reduction will be:
-#   .long.upce.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
+#   longUPCE.marker zero(D1) 6x@numbers(X1-D6) marker.special @numBelowUpcquietzone(D12:checksum)
 
 @numNotZero = [ ${DIGITS.filter(name=>name !== 'zero').join(' ')} ];
 
@@ -1389,7 +1389,7 @@ lookup upcE_remove_single{
         for(let name2 of DIGITS)
             yield `    sub ${name1} ${name2} by ${name2};` + '\n';
     // special case!
-    yield `    sub .long.upce.marker zero by .long.upce.marker;` + '\n';
+    yield `    sub longUPCE.marker zero by longUPCE.marker;` + '\n';
 })()
 ,`}upcE_remove_single;
 
@@ -1415,7 +1415,7 @@ feature ${featureTag} {
 #   * D7 to D10 are not encoded.
 #   * Symbol character: X1 X2 X3 X4 X5 X6
 #   * Data character:   D2 D3 D4 D5 D6 D11
-    sub .long.upce.marker zero
+    sub longUPCE.marker zero
         @numbers @numbers @numbers @numbers
         @numNotZero' lookup upcE_remove_four_zeros zero' zero' zero' zero'
         [ five six seven eight nine ]
@@ -1429,7 +1429,7 @@ feature ${featureTag} {
 #   * D6 to D10 are not encoded and X6 = 4.
 #   * Symbol character: X1 X2 X3 X4 X5  X6
 #   * Data character:   D2 D3 D4 D5 D11 4
-    sub .long.upce.marker zero
+    sub longUPCE.marker zero
         @numbers @numbers @numbers
         @numNotZero' lookup upcE_remove_five_zeros zero'
         lookup upcE_insert_four
@@ -1446,7 +1446,7 @@ feature ${featureTag} {
 #   * D5 to D8 are not encoded.
 #   * Symbol character: X1 X2 X3 X4  X5  X6
 #   * Data character:   D2 D3 D9 D10 D11 D4
-    sub .long.upce.marker zero
+    sub longUPCE.marker zero
         @numbers @numbers [zero one two]'
         lookup upcE_remove_four_zeros
         # lookup upcE_caseC_switch
@@ -1470,7 +1470,7 @@ feature ${featureTag} {
 #   * D5 to D9 are not encoded and X6 = 3
 #   * Symbol character: X1 X2 X3 X4  X5  X6
 #   * Data character:   D2 D3 D4 D10 D11 3
-    sub .long.upce.marker zero
+    sub longUPCE.marker zero
         @numbers @numbers
         [three four five six seven eight nine]' lookup upcE_remove_five_zeros
         zero' zero' lookup upcE_insert_three
@@ -1484,11 +1484,11 @@ feature ${featureTag} {
 # Now this unifies for short input and long input:
 
 lookup upcE_start{
-    sub .long.upce.marker by zero.below.upcquietzone guard.normal;
+    sub longUPCE.marker by zero.below.upcquietzone guard.normal;
 } upcE_start;
 
 feature ${featureTag} {
-  sub .long.upce.marker' lookup upcE_remove_single lookup upcE_start zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+  sub longUPCE.marker' lookup upcE_remove_single lookup upcE_start zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
 }${featureTag};
 
 
