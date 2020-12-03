@@ -43,9 +43,10 @@ LICENSE='This Font Software is licensed under the SIL Open Font '\
 'License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL'
 LICENSE_URL='https://scripts.sil.org/OFL'
 COPYRIGHT="Copyright 2017-2019 The $FAMILY_BASE_NAME Project Authors (https://github.com/graphicore/librebarcode)"
-VERSION="Version 1.005"
 VERSION_MAJOR=1
-VERSION_MINOR=4
+VERSION_MINOR=5
+VERSION="Version $VERSION_MAJOR.00$VERSION_MINOR"
+
 
 FONTINFO_EAN13TEXT=$(cat <<EOT
 {
