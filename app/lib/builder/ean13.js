@@ -43,6 +43,8 @@ define([
             // Manually trigger add-ons, for EAN-13, UPC-A, UPC-E this is not necessary
             // but e.g. foe special stand alne or maybe even non-standard use after ean-8
           , [{fromFont: true, charCode: '-'.charCodeAt(0)}, 'addon.marker', [], ['-']]
+            // explicitly trigger checkdigit calculation
+          , [{fromFont: true, charCode: '?'.charCodeAt(0)}, 'checkdigit.marker', [], ['?']]
           , [{fromFont: true, charCode: '<'.charCodeAt(0)}, 'lt.below.quiet', ['below', 'default', 'quietzone'], ['<']]
           , [{fromFont: true, charCode: '>'.charCodeAt(0)}, 'gt.below.quiet', ['below', 'default', 'quietzone'], ['>']]
           , [[5], 'gt.addon.quiet', ['addOn', 'default', 'quietzone'], [')']]
@@ -645,6 +647,7 @@ lookup ean13_stop {
     sub seven by seven guard.normal.triggerAddOn;
     sub eight by eight guard.normal.triggerAddOn;
     sub nine by nine guard.normal.triggerAddOn;
+    sub checkdigit.marker by checkdigit.marker guard.normal.triggerAddOn;
 }ean13_stop;
 
 # substitute one to many to insert the stop/end guard symbol after
@@ -662,19 +665,21 @@ lookup ean8_stop {
     sub seven by seven guard.normal.ean8 gt.below.quiet;
     sub eight by eight guard.normal.ean8 gt.below.quiet;
     sub nine by nine guard.normal.ean8 gt.below.quiet;
+    sub checkdigit.marker by checkdigit.marker guard.normal.ean8 gt.below.quiet;
 }ean8_stop;
 
 lookup upcE_stop {
 `,...(function*(){
     for(let name of DIGITS)
-      yield `    sub ${name} by ${name} guard.special;` + '\n';
+        yield `    sub ${name} by ${name} guard.special;` + '\n';
+    yield `    sub checkdigit.marker by checkdigit.marker guard.special;` + '\n';
 })()
 ,`}upcE_stop;
 
 lookup upcE_short_stop {
 `,...(function*(){
     for(let name of DIGITS)
-      yield `    sub ${name} by guard.special ${name}.below.upcquietzone;` + '\n';
+        yield `    sub ${name} by guard.special ${name}.below.upcquietzone;` + '\n';
 })()
 ,`}upcE_short_stop;
 
@@ -766,12 +771,12 @@ lookup upce_insert_4_zeros{
 
 @numbers_5_9 = [ ${ DIGITS.slice(-5).join(' ') } ];
 feature ${featureTag} {
-    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers @numbers ${DIGITS[0]};
-    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_one_4_zeros @numbers @numbers @numbers ${DIGITS[1]};
-    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_two_4_zeros @numbers @numbers @numbers ${DIGITS[2]};
-    sub shortUPCE.marker @numbers @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers ${DIGITS[3]};
-    sub shortUPCE.marker @numbers @numbers @numbers @numbers' lookup upce_insert_5_zeros  @numbers ${DIGITS[4]};
-    sub shortUPCE.marker @numbers @numbers @numbers @numbers @numbers' lookup upce_insert_4_zeros @numbers_5_9;
+    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers @numbers ${DIGITS[0]} checkdigit.marker;
+    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_one_4_zeros @numbers @numbers @numbers ${DIGITS[1]} checkdigit.marker;
+    sub shortUPCE.marker @numbers @numbers' lookup upce_insert_two_4_zeros @numbers @numbers @numbers ${DIGITS[2]} checkdigit.marker;
+    sub shortUPCE.marker @numbers @numbers @numbers' lookup upce_insert_5_zeros @numbers @numbers ${DIGITS[3]} checkdigit.marker;
+    sub shortUPCE.marker @numbers @numbers @numbers @numbers' lookup upce_insert_5_zeros  @numbers ${DIGITS[4]} checkdigit.marker;
+    sub shortUPCE.marker @numbers @numbers @numbers @numbers @numbers' lookup upce_insert_4_zeros @numbers_5_9 checkdigit.marker;
 }${featureTag};
 
 lookup upce_remove_last{
@@ -784,64 +789,128 @@ lookup upce_remove_last{
 @numbers_0_4 = [ ${ DIGITS.slice(0, 5).join(' ') } ];
 feature ${featureTag} {
     sub shortUPCE.marker ${repeat('@numbers', 9, ' ')}
-        @numbers' lookup upce_remove_last @numbers_0_4';
+        @numbers' lookup upce_remove_last @numbers_0_4' checkdigit.marker;
 }${featureTag};
+
+
+lookup upce_short_to_long{
+    # It's not in the standard but there's apparently a UPC-E1 variant,
+    # where the zero here would have to be a one. I've seen UPC-E1 mentioned
+    # e.g. on wikipedia and some sparse findings in a web search.
+    # Not supporting this now, until there's an explicit request.
+    # Note: the pattern distributution would change too, for this, and there's
+    # no marker for the UPC-E1 short.
+    sub shortUPCE.marker by longUPCE.marker zero;
+}upce_short_to_long;
 
 # Finalize UPC-E-short input to UPC-E-long input conversion:
 feature ${featureTag} {
-    sub shortUPCE.marker by longUPCE.marker zero;
+    sub shortUPCE.marker' lookup upce_short_to_long
+        ${repeat('@numbers', 10, ' ')}
+        checkdigit.marker;
 }${featureTag};
 
 
 feature ${featureTag} {
 `, ...(function*(){
     // EAN-13 + addOn-5
-    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
+    // Enter a "?" (questionmark, checkdigit.marker) as 13th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
+    yield `   sub ${repeat("@numbers'", 12)} [@numbers checkdigit.marker]' lookup ean13_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
-
     // UPC-E + addOn-5 from suitable UPC-A
-    // User needs to enter an "E" as a marker to request an upc-e code
+    // User needs to enter an "X" (capital X) as a marker to request an UPC-E code.
+    // Enter a "?" (questionmark, checkdigit.marker) as 12th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
     yield `   sub longUPCE.marker'
        zero'
-       ${repeat("@numbers'", 10)} lookup upcE_stop
+       ${repeat("@numbers'", 10)} [@numbers checkdigit.marker]' lookup upcE_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // UPC-A + addOn-5
-    yield `   sub ${repeat("@numbers'", 11)} lookup ean13_stop
+    // Enter a "?" (questionmark, checkdigit.marker) as 12th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
+    yield `   sub ${repeat("@numbers'", 11)} [@numbers checkdigit.marker]' lookup ean13_stop
        ${repeat('@numbers', 5)}
        ;` + '\n';
     // EAN-13 + addOn-2
-    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
+    // Enter a "?" (questionmark, checkdigit.marker) as 13th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
+    yield `   sub ${repeat("@numbers'", 12)} [@numbers checkdigit.marker]' lookup ean13_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // UPC-E + addOn-2 from suitable UPC-A
-    // User needs to enter an "E" as a marker to request an upc-e code
+    // User needs to enter an "X" (capital X) as a marker to request an UPC-E code
+    // Enter a "?" (questionmark, checkdigit.marker) as 12th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
     yield `   sub longUPCE.marker'
        zero'
-       ${repeat("@numbers'", 10)} lookup upcE_stop
+       ${repeat("@numbers'", 10)} [@numbers checkdigit.marker]' lookup upcE_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // UPC-A + addOn-2
-    yield `   sub ${repeat("@numbers'", 11)} lookup ean13_stop
+    // Enter a "?" (questionmark, checkdigit.marker) as 12th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
+    yield `   sub ${repeat("@numbers'", 11)} [@numbers checkdigit.marker]' lookup ean13_stop
        ${repeat('@numbers', 2)}
        ;` + '\n';
     // EAN-13
-    yield `   sub ${repeat("@numbers'", 12)} lookup ean13_stop
+    // Enter a "?" (questionmark, checkdigit.marker) as 13th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
+    yield `   sub ${repeat("@numbers'", 12)} [@numbers checkdigit.marker]' lookup ean13_stop
        ;` + '\n';
     // UPC-E from suitable UPC-A
-    // User needs to enter an "E" as a marker to request an upc-e code
+    // User needs to enter an "X" (capital X) as a marker to request an UPC-E code
+    // Enter a "?" (questionmark, checkdigit.marker) as 12th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
     yield `   sub longUPCE.marker'
        zero'
-       ${repeat("@numbers'", 10)} lookup upcE_stop
+       ${repeat("@numbers'", 10)} [@numbers checkdigit.marker]' lookup upcE_stop
+       ;` + '\n';
+    // UPC-E + addOn-5 from short input:
+    // User needs to enter an "x" (lower case x) as a marker to request an UPC-E code.
+    // 7 digits input, last digit is the explicit checksum.
+    // When checksum calculation was requested, using the "?"/checkdigit.marker,
+    // this will already be expanded to long input form at this point.
+    yield `   sub shortUPCE.marker
+       ${repeat("@numbers'", 7)} lookup upcE_short_stop
+       ${repeat('@numbers', 5)}
        ;` + '\n';
     // UPC-A
-    yield `   sub ${repeat("@numbers'", 11)} lookup ean13_stop
+    // Enter a "?" (questionmark, checkdigit.marker) as 12th char instead
+    // of an explicit check digit to trigger automatic check digit calculation,
+    // will replace the questionmark.
+    yield `   sub ${repeat("@numbers'", 11)} [@numbers checkdigit.marker]' lookup ean13_stop
+       ;` + '\n';
+    // UPC-E + addOn-2 from short input:
+    // User needs to enter an "x" (lower case x) as a marker to request an UPC-E code.
+    // 7 digits input, last digit is the explicit checksum.
+    // When checksum calculation was requested, using the "?"/checkdigit.marker,
+    // this will already be expanded to long input form at this point.
+    yield `   sub shortUPCE.marker
+       ${repeat("@numbers'", 7)} lookup upcE_short_stop
+       ${repeat('@numbers', 2)}
+       ;` + '\n';
+    // UPC-E from short input:
+    // User needs to enter an "x" (lower case x) as a marker to request an UPC-E code.
+    // 7 digits input, last digit is the explicit checksum.
+    // When checksum calculation was requested, using the "?"/checkdigit.marker,
+    // this will already be expanded to long input form at this point.
+    yield `   sub shortUPCE.marker
+       ${repeat("@numbers'", 7)} lookup upcE_short_stop;
        ;` + '\n';
     // EAN-8
-    yield `   sub ${repeat("@numbers'", 7)} lookup ean8_stop
+    yield `   sub ${repeat("@numbers'", 7)} [@numbers checkdigit.marker]' lookup ean8_stop
        ;` + '\n';
-
   })()
 ,`
 }${featureTag};
@@ -854,9 +923,11 @@ feature ${featureTag} {
         yield `# Insert intermediate results as @numBelow and the checksum as @numbers.` + '\n';
         yield `lookup insert_result_${nameRes} {` + '\n';
         for(let nameContext of DIGITS) {
+            // insert intermediate result
             yield `    sub ${nameContext} by ${nameContext} ${nameRes}.below;` + '\n';
-            yield `    sub ${nameContext}.below by ${nameContext}.below ${nameRes};` + '\n';
         }
+        // insert result check digit
+        yield `    sub checkdigit.marker by ${nameRes};` + '\n';
         yield `}insert_result_${nameRes};` + '\n\n';
     }
 
@@ -869,13 +940,13 @@ feature ${featureTag} {
             // it is odd (must be even).
             yield `    sub @numbers ` + '\n'
                 + `        ${name}' lookup insert_result_${name} ` + '\n'
-                + `        ${repeat("@numbers", 10)} guard.normal.triggerAddOn;` + '\n';
+                + `        ${repeat("@numbers", 10)} checkdigit.marker guard.normal.triggerAddOn;` + '\n';
             // UPC-A/E(-long): 11 numbers without checksum
             yield `    sub ${name}' lookup insert_result_${name} `
-                + `${repeat("@numbers", 10)} [guard.normal.triggerAddOn guard.special];` + '\n';
+                + `${repeat("@numbers", 10)} checkdigit.marker [guard.normal.triggerAddOn guard.special];` + '\n';
             // EAN-8: 7 numbers without checksum
             yield `    sub ${name}' lookup insert_result_${name} `
-                + `${repeat("@numbers", 6)} guard.normal.ean8;` + '\n';
+                + `${repeat("@numbers", 6)} checkdigit.marker guard.normal.ean8;` + '\n';
         }
     yield `}${featureTag};` + '\n\n';
 
@@ -898,15 +969,15 @@ feature ${featureTag} {
             // EAN 13
             yield `    sub ${name}' lookup insert_result_${name} ` + '\n'
                 + `        ${repeat("@numbers @numBelow @numbers", 5)}` + '\n'
-                + `        @numbers @numBelow guard.normal.triggerAddOn;` + '\n';
+                + `        @numbers @numBelow checkdigit.marker guard.normal.triggerAddOn;` + '\n';
             // UPC-A/E(-long)
             yield `    sub @numbers @numBelow ${name}' lookup insert_result_${name} ` + '\n'
                 + `        ${repeat("@numbers @numBelow @numbers", 4)}` + '\n'
-                + `        @numbers @numBelow [guard.special guard.normal.triggerAddOn];` + '\n';
+                + `        @numbers @numBelow checkdigit.marker [guard.special guard.normal.triggerAddOn];` + '\n';
             // EAN-8
             yield `    sub @numbers @numBelow ${name}' lookup insert_result_${name} ` + '\n'
                 + `        ${repeat("@numbers @numBelow @numbers", 2)}` + '\n'
-                + `        @numbers @numBelow [guard.normal.ean8];` + '\n';
+                + `        @numbers @numBelow checkdigit.marker [guard.normal.ean8];` + '\n';
         }
     yield `}${featureTag};` + '\n\n';
 
@@ -934,7 +1005,7 @@ feature ${featureTag} {
               ;
             // i/d1 -> even
             // j/d2 -> odd
-            yield `    sub ${d1}.below @numbers ${d2}.below' lookup insert_result_${r} `
+            yield `    sub ${d1}.below @numbers ${d2}.below checkdigit.marker' lookup insert_result_${r} `
                 + `        [guard.normal.ean8 guard.special guard.normal.triggerAddOn];` + '\n';
         }
     }
@@ -1484,11 +1555,13 @@ feature ${featureTag} {
 # Now this unifies for short input and long input:
 
 lookup upcE_start{
+    sub shortUPCE.marker by zero.below.upcquietzone guard.normal;
     sub longUPCE.marker by zero.below.upcquietzone guard.normal;
 } upcE_start;
 
 feature ${featureTag} {
-  sub longUPCE.marker' lookup upcE_remove_single lookup upcE_start zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+    sub shortUPCE.marker' lookup upcE_start @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
+    sub longUPCE.marker' lookup upcE_remove_single lookup upcE_start zero' @numbers @numbers @numbers @numbers @numbers @numbers guard.special;
 }${featureTag};
 
 
