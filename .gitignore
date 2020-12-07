@@ -10,3 +10,6 @@ bower_components
 /package-lock.json
 /sources
 /venv
+_site
+.sass-cache
+.jekyll-metadata
