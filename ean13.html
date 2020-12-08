@@ -1,9 +1,12 @@
+---
+title: the real ean13
+---
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
 
-    <title>Libre Barcode — EAN 1</title>
+    <title>Libre Barcode — {{ page.title }}</title>
 
     <link href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,700" rel="stylesheet">
     <script src="./app/lib/bower_components/requirejs/require.js"></script>
@@ -72,33 +75,44 @@
             var container = document.createElement('div')
               , children = []
               , title = document.createElement('h3')
+              , makeSamples =(klass, codeTexts, noInput)=>{
+                    let samples = document.createElement('div')
+                    samples.classList.add('samples');
+                    for(let text of codeTexts) {
+                        let sample = document.createElement('span')
+                          , output = document.createElement('span')
+                          , code = document.createElement('span')
+                          ;
+                        sample.classList.add('sample');
+                        if(!noInput){
+                            output.appendChild(document.createTextNode(text));
+                            sample.appendChild(output);
+                            output.classList.add('output');
+                        }
+                        code.appendChild(document.createTextNode(text));
+                        code.classList.add(klass);
+                        sample.appendChild(code);
+                        samples.appendChild(sample);
+                    }
+                    return samples
+                }
               ;
-
-
+            container.classList.add('specimen');
             title.textContent = titleText;
             children.push(title);
-            for(let [labelText, codeText, addCompat] of specimen) {
-                let label = document.createElement('span')
-                  , code =  document.createElement('span')
-                  ;
-
-                label.classList.add('output');
+            for(let [labelText, codeTexts, addCompat] of specimen) {
+                let label = document.createElement('span');
+                label.classList.add('label');
                 label.appendChild(document.createTextNode(labelText));
-                code.classList.add('ean13');
-                code.appendChild(document.createTextNode(codeText));
 
+                samples = makeSamples('ean13', codeTexts);
                 children.push(label);
-                children.push(code);
-                children.push(document.createElement('br'));
+                children.push(samples);
 
                 if(addCompat) {
-                    compat = document.createElement('span')
-                    compat.classList.add('compat_ean13');
-                    compat.appendChild(document.createTextNode(codeText));
+                    compat = makeSamples('compat_ean13', codeTexts, true);
                     children.push(compat);
-                    children.push(document.createElement('br'));
                 }
-
             }
             children.push(document.createElement('hr'));
             for(let child of children)
@@ -210,8 +224,14 @@
             return Array.from(input).map(s=>[0,1,2,3,4,5,6,7,8,9][s]);
         }
 
-        function compatibleEncoding(input, checksumExcluded) {
-            var digits = input2didgits(input)
+        function compatibleEncoding(input) {
+            var checkSumMarkerPos = input.indexOf('?')
+              , checksumExcluded = checkSumMarkerPos !== -1
+              , input_ = checksumExcluded
+                            ? input.slice(0, checkSumMarkerPos)
+                                    + input.slice(checkSumMarkerPos+1)
+                            : input
+              , digits = input2didgits(input_)
               , ean13, upca, ean8, addOn5, addOn2
               , result = [];
             switch(digits.length + (checksumExcluded ? 1 : 0)) {
@@ -310,7 +330,7 @@
             // font.destroy();
             // face.destroy();
             // blob.destroy();
-            function getFallbackInput(input){
+            function getFallbackInput(input) {
                 var buffer = hb.createBuffer()
                  , shaped
                  , chars = []
@@ -328,25 +348,24 @@
             }
 
             for(let [title, inputs] of [
-                              ['EAN-13 chksm 5'             , '001234567890']
-                            , ['EAN-13 chksm 5 + 2'         , '00123456789012']
-                            , ['EAN-13 chksm 5 + 5'         , '00123456789012345']
-                            , ['+ 5'                        , '-12345']
-                            , ['EAN-8 chksm 0'              , '1234567']
-                            , ['EAN-8 chksm 7'              , '9031101']
-                            , ['EAN-8 chksm 2'              , '0154684']
-                            , ['UPC-A chksm 5'              , '01234567890']
-                            , ['UPC-A (B) chksm 6'          , '60251743703']
-                            , ['UPC-E long (A) chksm 8'     , 'X01234500005']
-                            , ['UPC-E long (B) chksm 0 + 2' , 'X0456700000862']
-                            , ['UPC-E long (C) chksm 3'     , 'X03400000567']
-                            , ['UPC-E long (D) chksm 1 + 5' , 'X0984000007583611']
-                            , ['UPC-E short (A) chksm 8'     , 'x123455']
-                            , ['UPC-E short (B) chksm 0 + 2' , 'x45678462']
-                            , ['UPC-E short (C) chksm 3'     , 'x345670']
-                            , ['UPC-E short (D) chksm 1 + 5' , 'x98475383611']
+                              ['EAN-13 chksm 5'             , ['001234567890?', '0012345678905']]
+                            , ['EAN-13 chksm 5 + 2'         , ['001234567890?12', '001234567890512']]
+                            , ['EAN-13 chksm 5 + 5'         , ['001234567890?12345', '001234567890512345']]
+                            , ['+ 5'                        , ['-12345']]
+                            , ['EAN-8 chksm 0'              , ['1234567?', '12345670']]
+                            , ['EAN-8 chksm 7'              , ['9031101?', '90311017']]
+                            , ['EAN-8 chksm 2'              , ['0154684?', '01546842']]
+                            , ['UPC-A chksm 5'              , ['01234567890?', '012345678905']]
+                            , ['UPC-A (B) chksm 6'          , ['60251743703?', '602517437036']]
+                            , ['UPC-E long (A) chksm 8'     , ['X01234500005?', 'X012345000058']]
+                            , ['UPC-E long (B) chksm 0 + 2' , ['X04567000008?62', 'X04567000008062']]
+                            , ['UPC-E long (C) chksm 3'     , ['X03400000567?', 'X034000005673']]
+                            , ['UPC-E long (D) chksm 1 + 5' , ['X09840000075?83611', 'X09840000075183611']]
+                            , ['UPC-E short (A) chksm 8'    , ['x123455?', 'x1234558']]
+                            , ['UPC-E short (B) chksm 0 + 2', ['x456784?62', 'x456784262']]
+                            , ['UPC-E short (C) chksm 3'    , ['x345670?', 'x3456703']]
+                            , ['UPC-E short (D) chksm 1 + 5', ['x984753?83611', 'x984753583611']]
                             ]) {
-                inputs = inputs.split(' ');
                 let outputs = []
                   , compats = []
                   ;
@@ -376,15 +395,11 @@
                         }
                     }
                 }
-                let input = inputs.join(' ')
-                  , output = outputs.join(' ')
-                  , compat = compats.join(' ')
-                  ;
                 insertBarcodes(
                     title
-                  , [`in: ${input}`, input]
-                  , [`fallback: ${output}`, output]
-                  , ...(compat.length ? [[`compat: ${compat}`, compat, true]] : [])
+                  , [`user input:`, inputs]
+                  , [`fallback encoder:`, outputs]
+                  , ...(compats.length ? [[`compatible encoder:`, compats, true]] : [])
                 );
             }
         }
@@ -441,6 +456,19 @@
         min-height: 100%;
     }
 
+    .specimen {
+        display: table
+    }
+
+    .specimen > * {
+        display: table-row;
+    }
+
+    .specimen > * .sample {
+        display: table-cell;
+        padding: .5em;
+    }
+
     .compat_ean13,
     .ean13 {
         font-style: normal;
@@ -463,8 +491,6 @@
 
     .output {
         display: block;
-        margin: .5em auto;
-        width: 90%;
         font-family: monospace;
     }
     </style>
