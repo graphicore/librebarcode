@@ -3,8 +3,6 @@ import getHarfbuzz from '../harfbuzzjs/harfbuzz.mjs';
 import opentype from '../bower_components/opentype.js/dist/opentype.module.js';
 const LIBREBARCODE_EAN13_URL = new URL('../../../fonts/LibreBarcodeEAN13Text-Regular.ttf', import.meta.url);
 
-console.log(LIBREBARCODE_EAN13_URL);
-
 function makeEncode(hb, fontBlob) {
     var blob = hb.createBlob(fontBlob)
       , face = hb.createFace(blob, 0)
