@@ -1,0 +1,81 @@
+html {
+    font-family: 'Alegreya Sans', sans-serif;
+    font-size: 20px;
+    background: #DCDCDC;
+}
+
+body {
+    max-width: 35em;
+    margin: 0 auto;
+    background: white;
+    padding: 1.5em;
+    min-height: 100%;
+}
+
+.code128-encoder_display {
+    font-family: 'Libre Barcode 128 Text', cursive;
+    font-size: 4em;
+    text-align: center;
+    white-space: pre;
+}
+
+.code128-encoder_output {
+    display: block;
+    margin: .5em auto;
+    width: 90%;
+    font-family: monospace;
+}
+
+@font-face {
+    font-family: "Grandzebu EAN13";
+    src: url("../grandzebu/CodeEAN13-fontforge.ttf") format("opentype");
+}
+
+@font-face {
+    font-family: "Adobe NotDef";
+    src: url("../adobe-notdef/AND-Regular.ttf") format("opentype");
+}
+
+.ean13_specimen {
+    display: table
+}
+
+.ean13_specimen > * {
+    display: table-row;
+}
+
+.ean13_specimen > * .ean13_sample {
+    display: table-cell;
+    padding: .5em;
+}
+
+.compat_ean13,
+.ean13 {
+    font-style: normal;
+    font-weight: 400;
+    text-align: center;
+    white-space: pre;
+    background: white;
+}
+
+.ean13_sample .ean13 {
+    background: #ffffdf;
+}
+
+.ean13 {
+    font-family: "Libre Barcode EAN13 Text", "Adobe NotDef";
+    /* Setting this explicitly was necessary for IOS, version 13.7, Safari and Chrome.*/
+    font-size: 7.65rem;
+    font-feature-settings: "calt" 1;
+}
+
+.compat_ean13 {
+    font-family: "Grandzebu EAN13", "Adobe NotDef";
+    background-color: #dfffff;
+    font-size: 3.7rem;
+}
+
+.ean13_sample-output {
+    display: block;
+    font-family: monospace;
+}

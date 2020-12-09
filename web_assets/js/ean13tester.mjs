@@ -1,6 +1,6 @@
 /* jshint browser: true, esversion: 6*/
-import getEncodeFallback from '../ean13Encoder/fallback.mjs';
-import encodeCompatible from '../ean13Encoder/compatible.mjs';
+import getEncodeFallback from '../../app/lib/ean13Encoder/fallback.mjs';
+import encodeCompatible from '../../app/lib/ean13Encoder/compatible.mjs';
 
 function addWebfont(arrBuff, familyName, weight, style) {
     var document = window.document
@@ -27,10 +27,10 @@ function addWebfont(arrBuff, familyName, weight, style) {
         var blob = new Blob([arrBuff], { type: 'font/opentype' })
           , url = URL.createObjectURL(blob)
           ;
-        style.insertRule([
+        styleElem.sheet.insertRule([
                 '@font-face {'
                 + 'font-family: "' + familyName +'";'
-                + 'src: url("' + url + '");'
+                + 'src: url("' + url + '") format("opentype");'
                 + 'font-weight:  ' + weight + ';'
                 + 'font-style: ' + style + ';'
                 + '}'
@@ -38,23 +38,23 @@ function addWebfont(arrBuff, familyName, weight, style) {
     }
 }
 
-function insertBarcodes(titleText, ...specimen) {
+function insertBarcodes(hostElement, titleText, ...specimen) {
     var container = document.createElement('div')
       , children = []
       , title = document.createElement('h3')
       , makeSamples =(klass, codeTexts, noInput)=>{
             let samples = document.createElement('div');
-            samples.classList.add('samples');
+            samples.classList.add('ean13_samples');
             for(let text of codeTexts) {
                 let sample = document.createElement('span')
                   , output = document.createElement('span')
                   , code = document.createElement('span')
                   ;
-                sample.classList.add('sample');
+                sample.classList.add('ean13_sample');
                 if(!noInput){
                     output.appendChild(document.createTextNode(text));
                     sample.appendChild(output);
-                    output.classList.add('output');
+                    output.classList.add('ean13_sample-output');
                 }
                 code.appendChild(document.createTextNode(text));
                 code.classList.add(klass);
@@ -64,12 +64,12 @@ function insertBarcodes(titleText, ...specimen) {
             return samples;
         }
       ;
-    container.classList.add('specimen');
+    container.classList.add('ean13_specimen');
     title.textContent = titleText;
     children.push(title);
     for(let [labelText, codeTexts, addCompat] of specimen) {
         let label = document.createElement('span');
-        label.classList.add('label');
+        label.classList.add('ean13_specimen-label');
         label.appendChild(document.createTextNode(labelText));
         children.push(label);
 
@@ -84,11 +84,14 @@ function insertBarcodes(titleText, ...specimen) {
     children.push(document.createElement('hr'));
     for(let child of children)
         container.appendChild(child);
-    document.body.appendChild(container);
+    hostElement.appendChild(container);
 }
 
 function ean13renderTests(encodeFallback, fontBlob) {
     addWebfont(fontBlob, 'Libre Barcode EAN13 Text', 400, 'normal');
+
+    let domItems = document.createDocumentFragment();
+
     for(let [title, inputs] of [
                       ['EAN-13 chksm 5'             , ['001234567890?', '0012345678905']]
                     , ['EAN-13 chksm 5 + 2'         , ['001234567890?12', '001234567890512']]
@@ -138,10 +141,23 @@ function ean13renderTests(encodeFallback, fontBlob) {
             }
         }
         insertBarcodes(
-            title
+            domItems
+          , title
           , [`user input:`, inputs]
           , [`fallback encoder:`, outputs]
           , ...(compats.length ? [[`compatible encoder:`, compats, true]] : [])
+        );
+    }
+    let hostElements = document.getElementsByClassName('attach-ean13tester');
+    if(!hostElements.length)
+        hostElements = [document.body];
+    for(let i=0,l=hostElements.length;i<l;i++) {
+        let hostElement = hostElements[i];
+        hostElement.appendChild(
+            // No need to clone for last hostElement.
+            i === l - 1
+                ? domItems
+                : domItems.cloneNode(true)
         );
     }
 }

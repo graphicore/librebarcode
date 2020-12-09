@@ -4,12 +4,16 @@
     {%- include head.html -%}
   </head>
   <body>
-    {%- assign page_paths = site.pages | map: "path" 
-                    | where_exp: "path", "path contains 'web/'" -%}
+    {%- assign page_paths = site.pages | map: "path" -%}
     {%- for path in page_paths -%}
-            {%- assign current_page = site.pages | where: "path", path | first -%}
-            <a class="page-link" href="{{ current_page.url | relative_url }}">{{ current_page.title | default: path | escape }}</a>
-     {%- endfor -%}
+        {%- assign starts_with = path | slice: 0, 14 -%}
+        {%- if starts_with != 'documentation/' -%}
+            {%- continue -%}
+        {%- endif -%}
+        {%- assign current_page = site.pages | where: "path", path | first %}
+        <a class="page-link" href="{{ current_page.url | relative_url }}">{{ current_page.title | default: path | escape }}</a>
+            <br />
+     {% endfor -%}
     <main class="page-content" aria-label="Content">
       <div class="wrapper">
         {{ content }}
