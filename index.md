@@ -1,5 +1,5 @@
 ---
-layout: default
+order: 1
 title:  "Code 128 Encoder"
 modules:
     - "web_assets/js/code128encoder.mjs"

@@ -1,5 +1,5 @@
 ---
-layout: default
+order: 100
 title:  EAN-13 Technical Testing
 modules:
     - web_assets/js/ean13tester.mjs

@@ -1,5 +1,4 @@
 ---
-layout: default
 title:  "EAN 13!"
 ---
 

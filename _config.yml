@@ -21,11 +21,15 @@ markdown: kramdown
 # theme: minima
 
 plugins:
-  #  - jekyll-relative-links
   - jekyll-optional-front-matter
-#relative_links:
-    #enabled: true
-    #collections: true
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+      order: 100
+
 include:
   - README.md
 # Exclude from processing.
