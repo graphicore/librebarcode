@@ -4,6 +4,9 @@
     {%- include head.html -%}
   </head>
   <body>
+    <header>
+        <a class="project-title" href="{{ "/" | relative_url }}">ÌLibre BarcodeJÎ</a>
+    </header>
     {%- assign page_paths = site.pages | sort: "path" | sort: "order" | map: "path" -%}
     {%- for path in page_paths -%}
         {%- assign starts_with = path | slice: 0, 14 -%}
@@ -19,6 +22,10 @@
         {{ content }}
       </div>
     </main>
+    <footer>
+      {%- capture footer -%}{%- include footer.md -%}{%- endcapture- %}
+      {{ footer | markdownify }}
+    </footer>
   </body>
 </html>
 

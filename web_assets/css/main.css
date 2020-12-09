@@ -12,6 +12,16 @@ body {
     min-height: 100%;
 }
 
+
+header .project-title{
+    font-family: 'Libre Barcode 128 Text';
+    font-size: 4em;
+    color: black;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+}
+
 .code128-encoder_display {
     font-family: 'Libre Barcode 128 Text', cursive;
     font-size: 4em;
