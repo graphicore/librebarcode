@@ -968,8 +968,8 @@ feature ${featureTag} {
         for(let name of DIGITS) {
             // EAN 13
             yield `    sub ${name}' lookup insert_result_${name} ` + '\n'
-                + `        ${repeat("@numbers @numBelow @numbers", 5)}` + '\n'
-                + `        @numbers @numBelow checkdigit.marker guard.normal.triggerAddOn;` + '\n';
+                + `        ${repeat("@numbers' @numBelow' @numbers'", 5)}` + '\n'
+                + `        @numbers' @numBelow' checkdigit.marker' guard.normal.triggerAddOn';` + '\n';
             // UPC-A/E(-long)
             yield `    sub @numbers @numBelow ${name}' lookup insert_result_${name} ` + '\n'
                 + `        ${repeat("@numbers @numBelow @numbers", 4)}` + '\n'
