@@ -29,6 +29,7 @@ defaults:
     values:
       layout: "default"
       order: 100
+      listed: true
 
 include:
   - README.md

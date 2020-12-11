@@ -12,14 +12,29 @@ body {
     min-height: 100%;
 }
 
+a.connect.github {
+    display: inline-block;
+    text-indent: 28px;
+    white-space: nowrap;
+    background: no-repeat;
+    background-size: contain;
+    height: 25px;
+    margin: 0;
+    background-image: url("GitHub-icon.svg");
+    vertical-align: center;
+}
 
 header .project-title{
-    font-family: 'Libre Barcode 128 Text';
+    font-family: 'Libre Barcode 39 Text';
     font-size: 4em;
     color: black;
     text-decoration: none;
     display: block;
     text-align: center;
+}
+
+nav ul{
+    column-count: 2;
 }
 
 .code128-encoder_display {
@@ -72,20 +87,71 @@ header .project-title{
     background: #ffffdf;
 }
 
+.ean13_sample .compat_ean13 {
+    font-family: "Grandzebu EAN13", "Adobe NotDef";
+    background-color: #dfffff;
+}
+
 .ean13 {
     font-family: "Libre Barcode EAN13 Text", "Adobe NotDef";
     /* Setting this explicitly was necessary for IOS, version 13.7, Safari and Chrome.*/
     font-size: 7.65rem;
     font-feature-settings: "calt" 1;
+    overflow: auto;
 }
 
 .compat_ean13 {
     font-family: "Grandzebu EAN13", "Adobe NotDef";
-    background-color: #dfffff;
     font-size: 3.7rem;
+    overflow: auto;
+}
+
+.code39Text{
+    font-family: 'Libre Barcode 39 Text';
+    font-size: 4rem;
 }
 
 .ean13_sample-output {
     display: block;
     font-family: monospace;
+}
+
+
+table.ean13_expected tr > th + *{
+    padding-left: .75rem;
+}
+
+table.ean13_expected tr > th {
+    text-align: left;
+    vertical-align:  top;
+}
+
+table.ean13_expected .ean13 {
+    padding-bottom: .75rem;
+}
+
+.ean13_expected_section:first-child > * {
+    border-top: none;
+}
+
+hr,
+.ean13_expected_section > * {
+    border-top: 2px solid gray;
+}
+
+.ean13_expected_section > * {
+    padding-top: .75rem;
+}
+
+.ean13_expected_code-head th {
+    background: lightgray;
+    font-weight: 700;
+    padding:  .3rem;
+}
+
+code{
+    background: #eee;
+    border: 1px solid #ddd;
+    padding: 0 .2em;
+    border-radius: .25em;
 }

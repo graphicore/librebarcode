@@ -5,18 +5,23 @@
   </head>
   <body>
     <header>
-        <a class="project-title" href="{{ "/" | relative_url }}">ÌLibre BarcodeJÎ</a>
+        <a class="project-title" href="{{ "/" | relative_url }}">*Libre Barcode*</a>
     </header>
+    <nav>
+      <ul>
     {%- assign page_paths = site.pages | sort: "path" | sort: "order" | map: "path" -%}
     {%- for path in page_paths -%}
+        {%- assign current_page = site.pages | where: "path", path | first %}
         {%- assign starts_with = path | slice: 0, 14 -%}
-        {%- if starts_with != "index.md" and starts_with != 'documentation/' -%}
+        {%- if current_page.listed == false or starts_with != "index.md" and starts_with != 'documentation/' -%}
             {%- continue -%}
         {%- endif -%}
-        {%- assign current_page = site.pages | where: "path", path | first %}
-        <a class="page-link" href="{{ current_page.url | relative_url }}">{{ current_page.title | default: path | escape }}</a>
-        <br />
-     {% endfor -%}
+
+        <li><a class="page-link" href="{{ current_page.url | relative_url }}">{{ current_page.title | default: path | escape }}</a></li>
+    {% endfor -%}
+        <li>{% include github_link.html %}</li>
+    </ul>
+    </nav>
     <main class="page-content" aria-label="Content">
       <div class="wrapper">
         {{ content }}

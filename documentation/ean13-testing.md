@@ -1,6 +1,6 @@
 ---
-order: 100
 title:  EAN-13 Technical Testing
+listed: false
 modules:
     - web_assets/js/ean13tester.mjs
 ---

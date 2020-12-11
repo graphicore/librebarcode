@@ -1,11 +1,11 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ page.title }}</title>
+  <title>{{ page.title }} | Libre Barcode Project</title>
 
 {%- for module in page.modules %}
   <script src="{{ module | relative_url }}" type="module"></script>
 {%- endfor -%}
-
-  <link href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,700|Libre+Barcode+128+Text" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,700|Libre+Barcode+128+Text|Libre+Barcode+39+Text&display=swap" rel="stylesheet">
   <link href="{{ "web_assets/css/main.css" | relative_url }}" rel="stylesheet">

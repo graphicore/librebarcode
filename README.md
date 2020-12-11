@@ -1,6 +1,8 @@
 # Libre Barcode Font Project
 
-Fonts to write barcodes:
+Fonts to write barcodes.
+
+[Manual Pages](https://graphicore.github.io/librebarcode/)
 
 ## Code 39
 
@@ -9,23 +11,25 @@ Fonts to write barcodes:
 * Libre Barcode Extended 39
 * Libre Barcode Extended 39 Text
 
-To use these wrap the text to encode into `*` asterisks e.g.: `*HELLO WORLD*`
-
-See the [Wikipedia Code 39 page](https://en.wikipedia.org/wiki/Code_39) for more info.
+[Code 39 manual](https://graphicore.github.io/librebarcode/documentation/code39)
 
 ## Code 128
 
 * Libre Barcode 128
 * Libre Barcode 128 Text
 
-To use these you have to use an encoder like [this](https://graphicore.github.io/librebarcode)
-(see also [#14](https://github.com/graphicore/librebarcode/issues/14)).
+[Code 128 manual](https://graphicore.github.io/librebarcode/documentation/code128)
 
-See the [Wikipedia Code 128 page](https://en.wikipedia.org/wiki/Code_128) for more info.
+## EAN 13 (EAN 8, UPC-A, UPC-E, 2- and 5-digit Add-Ons)
+
+* Libre Barcode EAN13 Text
+
+[EAN 13 manual](https://graphicore.github.io/librebarcode/documentation/ean13)
+
 
 ## How to install and build
 
-You'll need `git`, `bash`, `python3.6`, `node`(=nodejs e.g. v10.16.3 is confirmed to work, use `nvm` to manage node versions) with `npm`, `bower` and `ttfautohint` (if not in your distribution I suggest: [ttfautohint-build](https://github.com/source-foundry/ttfautohint-build)). Maybe you'll have to install the `python3-venv` module.
+You'll need `git`, `bash`, `python3.6`, `node`(=nodejs e.g. v14.13.1 is confirmed to work, use `nvm` to manage node versions) with `npm`, `bower` and `ttfautohint` (if not in your distribution I suggest: [ttfautohint-build](https://github.com/source-foundry/ttfautohint-build)). Maybe you'll have to install the `python3-venv` module.
 
 Are dependencies missing? Please, let me know.
 
@@ -55,5 +59,5 @@ path/to/librebarcode $ . venv/bin/activate
 
 ## Licensing
 
-The fonts are licensed under OFL.
-The barcode font generator and code 128 encoder scripts are GPL3+.
+The fonts are licensed under OFL.<br />
+The barcode font generators and encoders are GPL3+.
