@@ -23,6 +23,10 @@ function makeEncode(hb, fontBlob) {
         chars = [];
         for(let x of shaped)
             chars.push(String.fromCharCode(otfont.glyphs.get(x.g).unicode));
+        if(chars.indexOf('\u0000') !== -1)
+            // If it has .null chars it's unlikely that the result is
+            // of any use.
+            throw new Error(`Can\'t encode input "${input}".`);
         return chars.join('');
     }
 
