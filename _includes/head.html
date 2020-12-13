@@ -2,7 +2,9 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page.title }} | Libre Barcode Project</title>
-
+  <!-- This prevents that iOS mkaes phone number links out of
+  bar codes, which subsequently breaks some EAN-13 calt shaping. -->
+  <meta name="format-detection" content="telephone=no">
 {%- for module in page.modules %}
   <script src="{{ module | relative_url }}" type="module"></script>
 {%- endfor -%}
