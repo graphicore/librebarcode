@@ -1,239 +1,238 @@
 #!/usr/bin/env bash
-# execute like this:
-#   $ ./app/bin/buildAll
 
+set -e
 
-cd `dirname $BASH_SOURCE`/../../;
-SOURCE_DIR=`pwd`/sources
-FONTS_DIR=`pwd`/fonts
-
-rm -rf $SOURCE_DIR $FONTS_DIR autohinted master_ttf
-
-mkdir -p $SOURCE_DIR
-mkdir -p $FONTS_DIR
-
-TEXT_BELOW_FONT="./app/assets/Inconsolata-Regular.ttf"
-BUILD="./app/bin/build"
-ADD_DSIG="./app/bin/add-dsig.py"
-
-FAMILY_BASE_NAME="Libre Barcode"
-FILE_BASENAME="LibreBarcode"
-
-UNITS_PER_EM=1000
-ASCENDER=600
-DESCENDER=-400
-STYLE_NAME="Regular"
-STYLEMAP_STYLE_NAME="regular"
-X_HEIGHT=400
-CAP_HEIGHT=590
-VENDOR_ID="GRCR"
-LICENSE='This Font Software is licensed under the SIL Open Font '\
-'License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL'
-LICENSE_URL='http://scripts.sil.org/OFL'
-COPYRIGHT="Copyright 2017 The $FAMILY_BASE_NAME Project Authors (lasse@graphicore.de)"
-VERSION="Version 1.003"
-VERSION_MAJOR=1
-VERSION_MINOR=3
-
-# usWinAscent from 800 to 682 ???
-# OS/2 sTypoLineGap is not equal to 0
-# fsType is a legacy DRM-related field from the 80's and must be zero (disabled) in all fonts. Changes that must be applied to this font: OS/2 fsType from 4 to 0
-# Font contains the first few mandatory glyphs (.null or NULL, CR and space)?
-#       Warning: Font is missing glyphs for the following mandatory codepoints: 0x0000, 0x000D.
-# Digital Signature exists?
-#       ERROR: This font lacks a digital signature (DSIG table). Some applications may require one (even if only a dummy placeholder) in order to work properly.
-
-FONTINFO_CODE39=$(cat <<EOT
-{
-    "familyName": "${FAMILY_BASE_NAME} 39"
-  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39"
-  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
-  , "styleName": "${STYLE_NAME}"
-  , "unitsPerEm": ${UNITS_PER_EM}
-  , "ascender": ${ASCENDER}
-  , "descender": ${DESCENDER}
-  , "xHeight": ${X_HEIGHT}
-  , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Type": []
-  , "openTypeOS2VendorID": "${VENDOR_ID}"
-  , "openTypeNameLicense": "${LICENSE}"
-  , "openTypeNameLicenseURL": "${LICENSE_URL}"
-  , "openTypeNameVersion": "${VERSION}"
-  , "copyright": "${COPYRIGHT}"
-  , "versionMajor": ${VERSION_MAJOR}
-  , "versionMinor": ${VERSION_MINOR}
-  , "openTypeOS2TypoLineGap": 0
+function isTarget {
+  local TARGET
+  for TARGET in ${TARGETS[@]}; do [[ "$1" == "$TARGET" ]] && return 0; done
+  return 1
 }
-EOT
-)
 
-# This is not used in this build currently
-PARAMETERS_CODE39=$(cat <<EOT
-{
-    "example": 123
+function printHelp {
+    local ME=`basename "$0"`
+    echo "usage: $ME [-h] [TARGET ...]"
+    echo ""
+    echo "Use no TARGET to build all or define the targets to build."
+    echo "All targets: ${ALL_TARGETS[@]}"
 }
-EOT
-)
 
-FONTINFO_CODE39TEXT=$(cat <<EOT
-{
-    "familyName": "${FAMILY_BASE_NAME} 39 Text"
-  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39 Text"
-  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
-  , "styleName": "${STYLE_NAME}"
-  , "unitsPerEm": ${UNITS_PER_EM}
-  , "ascender": ${ASCENDER}
-  , "descender": ${DESCENDER}
-  , "xHeight": ${X_HEIGHT}
-  , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Type": []
-  , "openTypeOS2VendorID": "${VENDOR_ID}"
-  , "openTypeNameLicense": "${LICENSE}"
-  , "openTypeNameLicenseURL": "${LICENSE_URL}"
-  , "openTypeNameVersion": "${VERSION}"
-  , "copyright": "${COPYRIGHT}"
-  , "versionMajor": ${VERSION_MAJOR}
-  , "versionMinor": ${VERSION_MINOR}
-  , "openTypeOS2TypoLineGap": 0
-}
-EOT
-)
+ALL_TARGETS=( CODE39 CODE39TEXT CODE39EXTENDED CODE39EXTENDEDTEXT CODE128 CODE128TEXT EAN13TEXT )
 
-FONTINFO_CODE39EXTENDED=$(cat <<EOT
-{
-    "familyName": "${FAMILY_BASE_NAME} 39 Extended"
-  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39 Extended"
-  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
-  , "styleName": "${STYLE_NAME}"
-  , "unitsPerEm": ${UNITS_PER_EM}
-  , "ascender": ${ASCENDER}
-  , "descender": ${DESCENDER}
-  , "xHeight": ${X_HEIGHT}
-  , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Type": []
-  , "openTypeOS2VendorID": "${VENDOR_ID}"
-  , "openTypeNameLicense": "${LICENSE}"
-  , "openTypeNameLicenseURL": "${LICENSE_URL}"
-  , "openTypeNameVersion": "${VERSION}"
-  , "copyright": "${COPYRIGHT}"
-  , "versionMajor": ${VERSION_MAJOR}
-  , "versionMinor": ${VERSION_MINOR}
-  , "openTypeOS2TypoLineGap": 0
-}
-EOT
-)
 
-FONTINFO_CODE39EXTENDEDTEXT=$(cat <<EOT
-{
-    "familyName": "${FAMILY_BASE_NAME} 39 Extended Text"
-  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 39 Extended Text"
-  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
-  , "styleName": "${STYLE_NAME}"
-  , "unitsPerEm": ${UNITS_PER_EM}
-  , "ascender": ${ASCENDER}
-  , "descender": ${DESCENDER}
-  , "xHeight": ${X_HEIGHT}
-  , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Type": []
-  , "openTypeOS2VendorID": "${VENDOR_ID}"
-  , "openTypeNameLicense": "${LICENSE}"
-  , "openTypeNameLicenseURL": "${LICENSE_URL}"
-  , "openTypeNameVersion": "${VERSION}"
-  , "copyright": "${COPYRIGHT}"
-  , "versionMajor": ${VERSION_MAJOR}
-  , "versionMinor": ${VERSION_MINOR}
-  , "openTypeOS2TypoLineGap": 0
-}
-EOT
-)
+if [ "$#" -eq 0 ]; then
+    TARGETS=( "${ALL_TARGETS[@]}" )
+else
+    # needed for the isTarget function
+    TARGETS=( "${ALL_TARGETS[@]}" )
+    for var in "$@"
+    do
+        if [ "$var" = "-h" ]; then
+            printHelp
+            exit 0;
+        fi
+    done
 
-FONTINFO_CODE128=$(cat <<EOT
-{
-    "familyName": "${FAMILY_BASE_NAME} 128"
-  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 128"
-  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
-  , "styleName": "${STYLE_NAME}"
-  , "unitsPerEm": ${UNITS_PER_EM}
-  , "ascender": ${ASCENDER}
-  , "descender": ${DESCENDER}
-  , "xHeight": ${X_HEIGHT}
-  , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Type": []
-  , "openTypeOS2VendorID": "${VENDOR_ID}"
-  , "openTypeNameLicense": "${LICENSE}"
-  , "openTypeNameLicenseURL": "${LICENSE_URL}"
-  , "openTypeNameVersion": "${VERSION}"
-  , "copyright": "${COPYRIGHT}"
-  , "versionMajor": ${VERSION_MAJOR}
-  , "versionMinor": ${VERSION_MINOR}
-  , "openTypeOS2TypoLineGap": 0
-}
-EOT
-)
+    for var in "$@"
+    do
+        if ! isTarget "$var" ; then
+            echo "ERROR: \"$var\" is not a TARGET";
+            printHelp
+            exit 1;
+        fi
+    done
+    TARGETS=( "$@" )
+fi
 
-FONTINFO_CODE128TEXT=$(cat <<EOT
-{
-    "familyName": "${FAMILY_BASE_NAME} 128 Text"
-  , "styleName": "${STYLE_NAME}"
-  , "styleMapFamilyName": "${FAMILY_BASE_NAME} 128 Text"
-  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
-  , "unitsPerEm": ${UNITS_PER_EM}
-  , "ascender": ${ASCENDER}
-  , "descender": ${DESCENDER}
-  , "xHeight": ${X_HEIGHT}
-  , "capHeight": ${CAP_HEIGHT}
-  , "openTypeOS2Type": []
-  , "openTypeOS2VendorID": "${VENDOR_ID}"
-  , "openTypeNameLicense": "${LICENSE}"
-  , "openTypeNameLicenseURL": "${LICENSE_URL}"
-  , "openTypeNameVersion": "${VERSION}"
-  , "copyright": "${COPYRIGHT}"
-  , "versionMajor": ${VERSION_MAJOR}
-  , "versionMinor": ${VERSION_MINOR}
-  , "openTypeOS2TypoLineGap": 0
-}
-EOT
-)
+echo "got targets: ${TARGETS[@]}"
 
-TARGETS=(CODE39 CODE39TEXT CODE39EXTENDED CODE39EXTENDEDTEXT CODE128 CODE128TEXT)
-              # UFO_BASE CODE_TYPE USEFONT
-TARGET_CODE39=("Code39" "Code39" 0 )
-TARGET_CODE39TEXT=("Code39Text" "Code39" 1)
-TARGET_CODE39EXTENDED=("Code39Extended" "Code39Extended" 0 )
-TARGET_CODE39EXTENDEDTEXT=("Code39ExtendedText" "Code39Extended" 1)
-TARGET_CODE128=("Code128" "Code128" 0)
-TARGET_CODE128TEXT=("Code128Text" "Code128" 1)
 
-for TARGET in ${TARGETS[@]}; do
-    _FONTINFO_DATA_REFERENCE="FONTINFO_$TARGET"[@]
-    FONTINFO=( "${!_FONTINFO_DATA_REFERENCE}" )
+function configure {
+    #first function argument is $1
+    # call like:
+    #     configure CODE39TEXT
+    local TARGET=$1;
+    echo "configure $TARGET ..."
 
-    _PARAMETERS_DATA_REFERENCE="PARAMETERS_$TARGET"[@]
-    PARAMETERS=( "${!_PARAMETERS_DATA_REFERENCE}")
-    if [ "${#PARAMETERS[@]}" -eq 0 ];then
-        PARAMETERS='{}'
+    # globals i.e. the result of the function
+    TEXT_BELOW_FONT="./app/assets/Inconsolata-Regular.ttf"
+    PARAMETERS='{}'
+
+    # locals, these don't leak out
+    local FAMILY_BASE_NAME="Libre Barcode"
+    local FILE_BASENAME="LibreBarcode"
+    local STYLE_NAME="Regular"
+    local STYLEMAP_STYLE_NAME="regular"
+    local VENDOR_ID="GRCR"
+    local LICENSE="This Font Software is licensed under the SIL Open Font "\
+"License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL"
+    local LICENSE_URL='https://scripts.sil.org/OFL'
+    local COPYRIGHT="Copyright 2017-2020 The $FAMILY_BASE_NAME Project Authors (https://github.com/graphicore/librebarcode)"
+
+    # without EAN13TEXT
+    local TARGETS=(CODE39 CODE39TEXT CODE39EXTENDED CODE39EXTENDEDTEXT CODE128 CODE128TEXT)
+    if isTarget "$TARGET"; then
+        local UNITS_PER_EM=1000
+        local ASCENDER=600
+        local DESCENDER=-400
+
+        local X_HEIGHT=400
+        local CAP_HEIGHT=590
+
+        local VERSION_MAJOR=1
+        local VERSION_MINOR=5
+
+        # TARGET_DATA=(UFO_BASE CODE_TYPE USEFONT SUB_FAMILY_NAME)
+        if [ "$TARGET" = "CODE39" ]; then
+            TARGET_DATA=("39" "Code39" 0 "39");
+            # This is not used in this build currently, just a demo of parameters
+            # Note the heredoc <<-  need real tabs for indentation (not soft tabs/spaces)
+            PARAMETERS=$(cat <<-EOT
+			{
+			    "example": 123
+			}
+			EOT
+            )
+        elif [ "$TARGET" = "CODE39TEXT" ]; then
+            TARGET_DATA=("39Text" "Code39" 1 "39 Text")
+        elif [ "$TARGET" = "CODE39EXTENDED" ]; then
+            TARGET_DATA=("39Extended" "Code39Extended" 0 "39 Extended")
+        elif [ "$TARGET" = "CODE39EXTENDEDTEXT" ]; then
+            TARGET_DATA=("39ExtendedText" "Code39Extended" 1 "39 Extended Text")
+        elif [ "$TARGET" = "CODE128" ]; then
+            TARGET_DATA=("128" "Code128" 0 "128")
+        elif [ "$TARGET" = "CODE128TEXT" ]; then
+            TARGET_DATA=("128Text" "Code128" 1 "128 Text")
+        fi
+
+    elif [ "$TARGET" = "EAN13TEXT" ]; then
+        # TARGET_DATA=(UFO_BASE CODE_TYPE USEFONT SUB_FAMILY_NAME)
+        TARGET_DATA=("EAN13Text" "EAN13" 1 "EAN13 Text")
+
+        # if we specify "unit" in here, we can make this fit to the UPM
+        local UNITS_PER_EM=1024
+        local ASC_MODULES=70
+        local DESC_MODULES=10
+        local HEIGHT_MODULES=$(expr $ASC_MODULES + $DESC_MODULES)
+        # IMPORTANT! Scales the UNIT so the modules are bigger than the UPM
+        # That way the font appears bigger than the size used in the application
+        # which I think may be necessary in some cases, when the UI limits how much
+        # a font can be scaled. However, it also is prone to break (wrong?)
+        # assumptions made by appdevelopers.
+        local BLOW_UP_FACTOR=1
+        local MODULE_UNIT=$(expr $BLOW_UP_FACTOR \* $UNITS_PER_EM / $HEIGHT_MODULES) # floor( 3 * 1024 / 80 ) = 38
+
+        local ASCENDER=$(expr $ASC_MODULES \* $MODULE_UNIT) # 70 (~ parameters.top)
+        local DESCENDER=-$(expr $DESC_MODULES \* $MODULE_UNIT)
+
+        local X_HEIGHT=$(expr $ASCENDER / 2)
+        local CAP_HEIGHT=${ASCENDER}
+
+        local VERSION_MAJOR=1
+        local VERSION_MINOR=7
+        # Spec 5.2.3.2 Symbol height"
+        #     auxiliaryDrop: 5x (units)
+        #     top: depends!
+        #         EAN-13, UPC-A, UPC-E: 22.85 mm (/ 0.330 = 69.24242424242425 units)
+        #         EAN-8: 18.23 mm (/ 0.330 = 55.24242424242424)
+        # CAUTION: "Symbol height is not modular."
+        #          Hence, this must not be changed according to the spec...
+        PARAMETERS=$(cat <<-EOT
+		{
+		    "unit": ${MODULE_UNIT}
+		  , "top": 69.24
+		  , "topEAN8": 55.24
+		  , "fontBelowPadding": 1
+		  , "adjustFontUPCQuietZone": 1.25
+		  , "auxiliaryDrop": 5
+		}
+		EOT
+        );
+    else
+        # fail
+        echo "$TARGET not found in config" 1>&2;
+        exit 1;
     fi
 
-    _TARGET_DATA_REFERENCE="TARGET_$TARGET"[@]
-    TARGET_DATA=( "${!_TARGET_DATA_REFERENCE}" ) # copies the list
-    UFO_BASE=${TARGET_DATA[0]}
+    local VERSION="Version $VERSION_MAJOR.00$VERSION_MINOR"
+    local UFO_BASE=${TARGET_DATA[0]}
     UFO_DIR="$SOURCE_DIR/$FILE_BASENAME${UFO_BASE}-Regular.ufo"
     CODE_TYPE=${TARGET_DATA[1]}
     USEFONT=${TARGET_DATA[2]}
-    FONTARG=""
+    SUB_FAMILY_NAME=${TARGET_DATA[3]}
+    FONTINFO=$(cat <<-EOT
+	{
+	    "familyName": "${FAMILY_BASE_NAME} ${SUB_FAMILY_NAME}"
+	  , "styleMapFamilyName": "${FAMILY_BASE_NAME} ${SUB_FAMILY_NAME}"
+	  , "styleMapStyleName": "${STYLEMAP_STYLE_NAME}"
+	  , "styleName": "${STYLE_NAME}"
+	  , "unitsPerEm": ${UNITS_PER_EM}
+	  , "ascender": ${ASCENDER}
+	  , "descender": ${DESCENDER}
+	  , "xHeight": ${X_HEIGHT}
+	  , "capHeight": ${CAP_HEIGHT}
+	  , "openTypeOS2Type": []
+	  , "openTypeOS2VendorID": "${VENDOR_ID}"
+	  , "openTypeNameLicense": "${LICENSE}"
+	  , "openTypeNameLicenseURL": "${LICENSE_URL}"
+	  , "openTypeNameVersion": "${VERSION}"
+	  , "copyright": "${COPYRIGHT}"
+	  , "versionMajor": ${VERSION_MAJOR}
+	  , "versionMinor": ${VERSION_MINOR}
+	  , "openTypeOS2TypoLineGap": 0
+	}
+	EOT
+    )
+}
+
+function build {
+    #first function argument is $1
+    # call like:
+    #     build CODE39TEXT
+    local TARGET=$1;
+    # configure needs to set:
+    #    $USEFONT
+    #    $TEXT_BELOW_FONT
+    #    $CODE_TYPE
+    #    $UFO_DIR
+    #    $FONTINFO
+    #    $PARAMETERS
+    configure $TARGET;
+    echo "build $TARGET ...";
+
+    local FONTARG="";
     if [ $USEFONT -eq 1 ];then
         FONTARG=" --fontbelow $TEXT_BELOW_FONT "
     fi
 
     $BUILD $CODE_TYPE $UFO_DIR --fontinfo "$FONTINFO" --parameters "$PARAMETERS" $FONTARG
-    fontmake -u $UFO_DIR --production-names --keep-overlaps --keep-direction -a"-I" -o ttf
+    fontmake -u $UFO_DIR --keep-overlaps --keep-direction -a"--symbol" -o ttf
+}
 
+
+BIN_DIR=`dirname $BASH_SOURCE`;
+cd "$BIN_DIR/../../";
+SOURCE_DIR=`pwd`/sources
+FONTS_DIR=`pwd`/fonts
+BUILD="$BIN_DIR/build"
+
+rm -rf $SOURCE_DIR $FONTS_DIR autohinted master_ttf
+mkdir -p $SOURCE_DIR
+mkdir -p $FONTS_DIR
+
+for TARGET in ${TARGETS[@]}; do
+    build $TARGET;
 done
 
 cp autohinted/master_ttf/* fonts && \
 cp OFL.txt fonts && \
 rm -rf master_ttf autohinted
-ls fonts
-
 FILES=$(find fonts -type f -name "*.ttf")
-python $ADD_DSIG $FILES;
+# echo 'gftools fix-dsig'
+# gftools fix-dsig -f $FILES;
+for FILE in ${FILES[@]}; do
+    set -x;
+    gftools fix-font -o $FILE $FILE;
+    # don't print "+ set +x;"
+    { set +x; } 2>/dev/null
+done
+echo "DONE!"
