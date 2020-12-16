@@ -128,7 +128,7 @@ function configure {
         local CAP_HEIGHT=${ASCENDER}
 
         local VERSION_MAJOR=1
-        local VERSION_MINOR=7
+        local VERSION_MINOR=8
         # Spec 5.2.3.2 Symbol height"
         #     auxiliaryDrop: 5x (units)
         #     top: depends!
