@@ -199,10 +199,16 @@ define([
         throw new NotImplementedError('drawPoints');
     };
 
+    // Can be overriden by subclass, used for composites with
+    // charcodes in createComposites.
+    _p.compositeCharcodeToGlyphName =function (charcode) {
+        return charcode2name(charcode);
+    };
+
     _p.createComposites = function* (withTextBelow) {
         // jshint unused:vars
         for(let charcode of this.targetCharCodes) {
-            let name = charcode2name(charcode)
+            let name = this.compositeCharcodeToGlyphName(charcode)
               , unicodes = [charcode]
               , textBelowChars = String.fromCharCode(charcode)
               ;
@@ -448,9 +454,18 @@ define([
                 }
             }
           , {
-                name: 'CR'
+                // Unicode Character 'ZERO WIDTH SPACE' (U+200B)
+                name: 'zwspace'
               , glifData: {
                     unicodes:[0x200B]
+                  , width: 0
+                }
+            }
+          , {
+                // Unicode Character 'ZERO WIDTH NON-JOINER' (U+200C)
+                name: 'zwnj'
+              , glifData: {
+                    unicodes:[0x200C]
                   , width: 0
                 }
             }

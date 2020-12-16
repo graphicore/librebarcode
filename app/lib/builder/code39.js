@@ -1,3 +1,5 @@
+// jshint esversion: 6
+
 define([
     'LibreBarcode/errors'
   , 'LibreBarcode/validation'
@@ -32,8 +34,14 @@ define([
 
     var data = {
         glyphs: [
-    // checksum value, pattern, canonical id/name (name of the glyph in the font?)
-    //                                , [unicode chars], text_below_boolean_flag
+    // [
+    // checksum value,
+    // pattern,
+    // canonical id/name (name of the glyph in the font?)
+    // [unicode chars],
+    // text_below_boolean_flag,
+    // optional drawsSymbolFlag: default false
+    // ]
             [   1, "▮| ||▮", "code.one", ["1"], true]
           , [   2, "|▮ ||▮", "code.two", ["2"], true]
           , [   3, "▮▮ |||", "code.three", ["3"], true]
@@ -72,7 +80,12 @@ define([
           , [  35, "| ▮▮||", "code.Z", ["Z", "z"], true]
           , [  36, "| ||▮▮", "code.minus", ["-"], true]
           , [  37, "▮ ||▮|", "code.period", ["."], true]
-          , [  38, "| ▮|▮|", "code.space", [" "], false]
+            // Due to issue #25 Can't have a printing space 0x0020!
+            // Hence using the same as in Code128: Â
+            // "space" will be substituted using OpenType substitution in calt.
+          , [  38, "| ▮|▮|", "code.space", ["Â"], false]
+            // not drawing, but the same pattern as code.space for width calculations
+          , [null, "| ▮|▮|", "space", [" "], false, false]
           , [null, "| |▮▮|", "code.startstop", ["*"], false]
           , [  39, "| | | ||", "code.dollar", ["$"], true]
           , [  40, "| | || |", "code.slash", ["/"], true]
@@ -83,10 +96,13 @@ define([
 
     var Code39Glyph = (function(Parent) {
     // "use strict";
-    function Code39Glyph(parameters, value, pattern, name, targetCharCodes, textBelowFlag) {
+    function Code39Glyph(parameters, value, pattern, name, targetCharCodes, textBelowFlag, drawsRawSymbol) {
         Parent.call(this,  parameters, name, targetCharCodes, textBelowFlag);
         this.value = value;
         this.pattern = pattern;
+
+        if(drawsRawSymbol !== undefined)
+            this.drawsRawSymbol = drawsRawSymbol;
     }
 
     var _p = Code39Glyph.prototype = Object.create(Parent.prototype);
@@ -229,6 +245,31 @@ define([
         ;
       return Parent.prototype._drawGlyphFromFont.call(this, glyphSet, fontBelow,
                                             _charcode, _name, transformation);
+    };
+
+    _p.compositeCharcodeToGlyphName = function(charOrCharcode){
+        let charcode = typeof charOrCharcode !== 'number'
+            ? charOrCharcode.charCodeAt(0)
+            : charOrCharcode
+            ;
+        // return `${charcode2name(charcode)}.${this.getGlyphByChar(charcode).name}`;
+        return charcode2name(charcode);
+    };
+
+    _p.getFeatures = function() {
+        var feature = `
+# This fixes #25 when calt is available but it breaks the font in
+# MS-Word, if "Contextual Alternates" is not set.
+# The font did not work previously in Word due to #18.
+# The new requirement to activate "Contextual Alternates" is thus
+# no too bad, and it aligns with the EAN-13 font requirements.
+# Also, using "Â" instead of " " is a direct workaround when
+# OpenType is not available.
+feature calt {
+    sub ${ this.compositeCharcodeToGlyphName(' ') } by ${ this.compositeCharcodeToGlyphName('Â') };
+} calt;
+`;
+        return feature;
     };
 
     _p._validators = Parent.prototype._validators.slice();

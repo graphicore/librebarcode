@@ -20,7 +20,10 @@ define([
             //   * textbelow_flag
             //   * (optional) textbelow_charcodes
             //   * (optional)
-            [   0, "11011001100", "code.space", [" ", "Â"], false]
+            // Usually no need to use Â directly, there's a calt GSUB
+            // from " " to "Â". " " must not contain ink, see issue #25.
+            // "Â" can be a fallback if calt is not available.
+            [   0, "11011001100", "code.space", ["Â"], false]
           , [   1, "11001101100", "code.exclam", ["!"], true]
           , [   2, "11001100110", "code.quotedbl", ["\""], true]
           , [   3, "10010011000", "code.numbersign", ["#"], true]
@@ -139,6 +142,7 @@ define([
             // Not needed in the font. A scanner needs this to know it's reading
             // right to left. It's the reverse of the "stop" symbol.
             //, [null, "11010111000", "code.reversestop", [], false]
+          , [null, "00000000000", "space", [" "], false],
         ]
     };
 
@@ -151,7 +155,7 @@ define([
             ;
           // pattern =
           data.glyphs.push([
-              glyph[0],
+              glyph[0], // checksum value
               // These don't  define a pattern, and hence don't "draw" but
               // then in "makeComponent" reference the pattern glyph to use...
               null, // pattern = null => this doesn't draw a raw symbol
@@ -166,10 +170,10 @@ define([
 
     var Code128Glyph = (function(Parent) {
     // "use strict";
-    function Code128Glyph(parameters, getGlyphByChar, value, pattern, name, targetChars
+    function Code128Glyph(parameters, getGlyphByChar, compositeCharcodeToGlyphName,  value, pattern, name, targetChars
                       , textBelowFlag, textBelowChars, symbolComponents) {
         Parent.call(this, parameters, name, targetChars, textBelowFlag);
-
+        this.compositeCharcodeToGlyphName = compositeCharcodeToGlyphName;
         this.value = value;
         this.pattern = pattern;
         this.drawsRawSymbol = pattern !== null;
@@ -207,7 +211,7 @@ define([
             get: function() {
                 return {
                     width: this.width
-                  , unicodes: []
+                  , unicodes: this.name === 'space' ? [' '.charCodeAt(0)] : []
                 };
             }
           , enumerable: true
@@ -251,6 +255,8 @@ define([
         var isCodeCGlyph = !this.name.startsWith('code.Code')
                                 && this.name !== 'code.C'
                                 && this.name.startsWith('code.C');
+        if(this.name === 'space')
+            return;
         if(!isCodeCGlyph /* a "normal" glyph */) {
             yield* Parent.prototype.createComposites.call(this, withTextBelow);
             return;
@@ -278,7 +284,7 @@ define([
         Parent.call(this, fontInfo, fontBelow);
         // validation
         this.parameters = this._validateParameters(userParameters);
-        this._initGlyphs(char=>this.getGlyphByChar(char));
+        this._initGlyphs(char=>this.getGlyphByChar(char), char=>this.compositeCharcodeToGlyphName(char));
     }
 
     var _p = Code128Builder.prototype = Object.create(Parent.prototype);
@@ -297,18 +303,41 @@ define([
         }
     ]);
 
+    // Can be overriden by subclass, used for components with
+    // charcodes in createComposites.
+    _p.compositeCharcodeToGlyphName = function (charOrCharcode) {
+        let charcode = typeof charOrCharcode !== 'number'
+            ? charOrCharcode.charCodeAt(0)
+            : charOrCharcode
+            ;
+        return `${charcode2name(charcode)}.${this.getGlyphByChar(charcode).name}`;
+    };
+
     _p._getFeatures = function(fontBelow) {
-        var textbelow
+        var feature
+          , textbelow
           , notextbelow
           , notextbelow_c
           , start, stop
           , digitspre, digitspost
-          , feature
           , i, l, j, ll, glyph, charcode, stoppattern
           ;
 
+        feature = `
+# This fixes #25 when calt is available but it breaks the font in
+# MS-Word, if "Contextual Alternates" is not set.
+# The font did not work previously in Word due to #18.
+# The new requirement to activate "Contextual Alternates" is thus
+# no too bad, and it aligns with the EAN-13 font requirements.
+# Also, using "Â" instead of " " is a direct workaround when
+# OpenType is not available.
+feature calt {
+    sub space by ${ this.compositeCharcodeToGlyphName('Â') };
+} calt;
+`;
+
         if(!fontBelow)
-          return;
+          return feature;
 
         textbelow = [];
         notextbelow = [];
@@ -324,7 +353,7 @@ define([
                 notextbelow_c.push(glyph.components[0].name);
             }
             if(i <= 99)
-                digitspre.push(charcode2name(glyph.targetCharCodes[0]));
+                digitspre.push(this.compositeCharcodeToGlyphName(glyph.targetCharCodes[0]));
 
             if(!glyph.textBelowFlag)
                 continue;
@@ -332,53 +361,52 @@ define([
                 charcode = glyph.targetCharCodes[j];
                 if(!fontBelow.hasGlyphForCodePoint(charcode))
                     continue;
-                textbelow.push(charcode2name(charcode));
+                textbelow.push(this.compositeCharcodeToGlyphName(charcode));
                 notextbelow.push(glyph.name);
             }
         }
 
-        // the glyphs with text below that are directly followed by the
-        // code.stoppattern glyph are substituted by their no-text below
-        // versions. Because, directly before code.stoppattern is the
-        // check-sum symbol, and we don't want this to be human readable
-        stoppattern = charcode2name('Î'.charCodeAt(0));
-        start = ['Ç', 'Í'].map(function(c) {
-            return charcode2name(c.charCodeAt(0));
-        });
-        stop = ['È', 'É', 'Î'].map(function(c) {
-            return charcode2name(c.charCodeAt(0));
-        });
-        feature = [
-            '@textbelow = [', textbelow.join(' '),'];\n'
-          , '@notextbelow = [', notextbelow.join(' '),'];\n'
-          , '@notextbelow.c = [', notextbelow_c.join(' '),'];\n'
-          , "@digits.pre  = [", digitspre.join(" "), "];\n"
-          , "@digits.post = [", digitspost.join(" "), "];\n"
-          , "@start       = [", start.join(" "), "];\n"
-          , "@stop        = [", stop.join(" "), "];\n"
-          // remove text-below in check sum symbol
-          , 'feature calt {\n'
-          , "    sub @textbelow' ",stoppattern,' by @notextbelow;\n'
-          , '} calt;\n'
+        stoppattern = this.compositeCharcodeToGlyphName('Î'.charCodeAt(0));
+        start = ['Ç', 'Í'].map(c=>this.compositeCharcodeToGlyphName(c.charCodeAt(0)));
+        stop = ['È', 'É', 'Î'].map(c=>this.compositeCharcodeToGlyphName(c.charCodeAt(0)));
+        feature += `
+# the glyphs with text below that are directly followed by the
+# code.stoppattern glyph are substituted by their no-text below
+# versions. Because, directly before code.stoppattern is the
+# check-sum symbol, and we don't want this to be human readable
+#
+# stoppattern: ${ stoppattern }
+#
+@textbelow = [ ${ textbelow.join(' ') }];
+@notextbelow = [ ${ notextbelow.join(' ') }];
+@notextbelow.c = [ ${ notextbelow_c.join(' ') }];
+@digits.pre  = [ ${ digitspre.join(' ') } ];
+@digits.post = [ ${ digitspost.join(' ') } ];
+@start       = [ ${ start.join(' ') } ];
+@stop        = [ ${ stop.join(' ') } ];
+# remove text-below in check-sum symbol
+feature calt {
+    sub @textbelow' ${ stoppattern } by @notextbelow;
+} calt;
 
-          , "\n"
-          , "lookup digits.c {\n"
-          , "    sub @digits.pre by @digits.post;\n"
-          , "} digits.c;\n"
-          , "feature calt {\n"
-          , "    sub @start @digits.pre' lookup digits.c;\n"
-          , "} calt;\n"
-          , "feature calt {\n"
-          , "    ignore sub @digits.post' @stop';\n"
-          , "    sub @digits.post @digits.pre' lookup digits.c;\n"
-          , "} calt;\n"
-          // after the code c substitutions: remove text-below in check sum symbol
-          , 'feature calt {\n'
-          , "    sub @digits.post' ",stoppattern,' by @notextbelow.c;\n'
-          , '} calt;\n'
-        ];
 
-        return feature.join('');
+lookup digits.c {
+    sub @digits.pre by @digits.post;
+} digits.c;
+feature calt {
+    sub @start @digits.pre' lookup digits.c;
+} calt;
+feature calt {
+    ignore sub @digits.post' @stop';
+    sub @digits.post @digits.pre' lookup digits.c;
+} calt;
+# after the code c substitutions: remove text-below in check sum symbol"
+feature calt {
+    sub @digits.post' ${ stoppattern } by @notextbelow.c;
+} calt;
+`;
+
+        return feature;
     };
 
     _p.getFeatures = function() {

@@ -51,7 +51,8 @@ define([
         , [ 29, 'GS', '%C', false]
         , [ 30, 'RS', '%D', false]
         , [ 31, 'US', '%E', false]
-        , [ 32, ' ', ' ', false] // space
+        , [ 32, ' ', ' ', false] // space // Â
+        , [ 'Â'.charCodeAt(0), 'fallback space', 'Â', false] // space // Â
         , [ 33, '!', '/A', true]
         , [ 34, '"', '/B', true]
         , [ 35, '#', '/C', true]
@@ -209,6 +210,9 @@ define([
         //      addNotdef, drawEmptyMandatoryGlyphs
         this.drawEmptyMandatoryGlyphs(glyphSet);
     };
+
+    _p.compositeCharcodeToGlyphName = Code39Builder.prototype.compositeCharcodeToGlyphName;
+    _p.getFeatures = Code39Builder.prototype.getFeatures;
 
     return {
         Builder: Code39ExtendedBuilder
