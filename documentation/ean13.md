@@ -104,6 +104,8 @@ fallback encoder will always be en par with the font implementation. Low mainten
  * The fallback encoder produces: <code class="ean13_encode-fallback" data-input="01234567890?"></code>
  * Result: <span class="ean13_encode-fallback ean13" data-input="01234567890?"></span>
 
+There's a [EAN 13 Encoder](#ean13-encoder) on this page and an [EAN 13 Bulk Encoder](./ean13-bulk.html) for many codes.
+
 ### <a name="compatible-input-method">Compatible Input Method</a>
 
 Another FLOSS font for the EAN/UPC family exists: [grandzebu.net:  The EAN 13 code](https://grandzebu.net/informatique/codbar-en/ean13.htm).
@@ -126,6 +128,8 @@ A compatible encoder is available, it works similar to the fallback encoder.
    <span class="ean13_encode-compatible ean13" data-input="01234567890?"></span><br />
    and with the Grandzebu font:<br />
    <span class="ean13_encode-compatible compat_ean13" data-input="01234567890?"></span>
+
+There's a [EAN 13 Encoder](#ean13-encoder) on this page and an [EAN 13 Bulk Encoder](./ean13-bulk.html) for many codes.
 
 ## <a name="expected-inputs">Expected Inputs</a>
 
@@ -437,7 +441,10 @@ What follows is a table of expected inputs. Inputs outside of these expected cas
 </tr>
 </table>
 
-There's an [EAN13 Technical Testing page](./ean13-testing.html) with many examples.
+
+There's an [EAN 13 Technical Testing page](./ean13-testing.html) with many examples.
+
+There's also an [EAN 13 Bulk Encoder](./ean13-bulk.html) for many codes.
 
 <a name="ean13-encoder"></a>
 {% include ean13encoder.md %}

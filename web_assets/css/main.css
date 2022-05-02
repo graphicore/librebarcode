@@ -155,3 +155,12 @@ code{
     padding: 0 .2em;
     border-radius: .25em;
 }
+
+textarea.ean13_bulk {
+    width: 100%;
+    height: 15em;
+}
+pre.ean13_bulk {
+    width: 100%;
+    overflow: auto;
+}
