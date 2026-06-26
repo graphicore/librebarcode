@@ -74,7 +74,7 @@ requirements.txt.
 
 ```shell
 (venv) path/to/librebarcode $ pip install pip-tools
-(venv) path/to/librebarcode $ pip-compile requirements.in
+(venv) path/to/librebarcode $ pip-compile --upgrade requirements.in
 (venv) path/to/librebarcode $ pip install -r requirements.txt
 
 ```
