@@ -1,8 +1,0 @@
-fontmake==2.3.0
-gftools==0.5.2
-font-v==1.0.5
-# below are transitive dependencies that need to be pinned to older versions
-# without these, the build fails or the TTFs differ from the existing ones
-ufo2ft==2.19.2
-protobuf==3.19.6
-fonttools==4.18.1

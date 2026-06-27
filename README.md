@@ -28,17 +28,15 @@ Fonts to write barcodes.
 
 ## How to install and build
 
-You'll need:
+You'll need these installed and configured first:
 
 - `git`
-- `bash`
-- `python3` (up to v3.9 is confirmed to work)
-- `node` (>= v14.13.1 is confirmed to work; won't build on newer than v18)
-- `npm`
+- `bash` (or compatible shell, like `zsh`)
+- `node` – v18.20.8 is pinned and >v18 will not build. (>=v14.13.1 is confirmed to work, except on ARM Macs
+  which only have access to >=v16).
+  - `fnm` or `vp env` (Vite+) recommended for Node version management
 - `bower`
-- `ttfautohint` (on macOS with Homebrew: `brew install ttfautohint`;
-  see [the website](https://freetype.org/ttfautohint/) for more info)
-- `python3-venv` module
+- `uv`
 
 Are dependencies missing? Please, let me know.
 
@@ -47,36 +45,22 @@ Are dependencies missing? Please, let me know.
 path/to $ git clone git@github.com:graphicore/librebarcode.git
 path/to $ cd librebarcode
 
-# installs javascript dependencies
+# switch to pinned JS version if necessary, e.g.
+path/to/librebarcode $ n use
+# fnm or vp env will do this for you
+
+# install JavaScript dependencies
 path/to/librebarcode $ npm install
 path/to/librebarcode $ bower install
 
-# best start with an virtual environment
-# first ensure the active version of Python is not newer than 3.9
-path/to/librebarcode $ python3 -m venv venv
-path/to/librebarcode $ . venv/bin/activate
+# install Python and Python dependencies
+path/to/librebarcode $ uv sync
 
-# installs fontmake and fontbakery
-(venv) path/to/librebarcode $ pip install -r requirements.txt
+# now build (uv run ensures the Python venv is on PATH)
+path/to/librebarcode $ uv run ./app/bin/buildAll
 
-# now build:
-(venv) path/to/librebarcode $ ./app/bin/buildAll
-
-# the fonts should be in the librebarcode/fonts directory now
-# The UFO sources should be in the sources directory
-```
-
-## Contributing
-
-To update the Python dependencies, edit `requirements.in` and regenerate
-`requirements.txt` using `pip-compile`. Then reinstall from the updated
-requirements.txt.
-
-```shell
-(venv) path/to/librebarcode $ pip install pip-tools
-(venv) path/to/librebarcode $ pip-compile --upgrade requirements.in
-(venv) path/to/librebarcode $ pip install -r requirements.txt
-
+# the fonts should be in the fonts/ directory
+# the UFO sources should be in the sources/ directory
 ```
 
 ## Licensing

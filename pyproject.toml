@@ -1,0 +1,18 @@
+[project]
+name = "librebarcode"
+version = "0.0.0"
+requires-python = "==3.9.*"
+dependencies = [
+    "fontmake==2.3.0",
+    "font-v==1.0.5",
+    "gftools==0.5.2",
+    "setuptools==79.0.1",
+    "ttfautohint-py==0.6.0",
+]
+
+[tool.uv]
+constraint-dependencies = [
+    "fonttools==4.18.1",
+    "protobuf==3.19.6",
+    "ufo2ft==2.19.2",
+]
