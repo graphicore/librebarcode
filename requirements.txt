@@ -6,6 +6,8 @@
 #
 absl-py==2.3.1
     # via gftools
+appdirs==1.4.4
+    # via fs
 attrs==26.1.0
     # via
     #   fontmake
@@ -45,8 +47,9 @@ fontmake==2.3.0
     # via -r requirements.in
 fontmath==0.10.0
     # via fontmake
-fonttools[lxml,ufo,unicode]==4.60.2
+fonttools[lxml,ufo,unicode]==4.18.1
     # via
+    #   -r requirements.in
     #   booleanoperations
     #   cffsubr
     #   compreffor
@@ -59,13 +62,15 @@ fonttools[lxml,ufo,unicode]==4.60.2
     #   ufo2ft
     #   ufolib2
     #   vttlib
+fs==2.4.16
+    # via fonttools
 gftools==0.5.2
     # via -r requirements.in
 gitdb==4.0.12
     # via gitpython
 gitpython==3.1.50
     # via font-v
-glyphslib==6.12.6
+glyphslib==5.3.1
     # via
     #   fontmake
     #   gftools
@@ -77,15 +82,13 @@ itsdangerous==2.2.0
     # via flask
 jinja2==3.1.6
     # via flask
-lxml==6.1.1
+lxml==4.9.4
     # via fonttools
 markupsafe==3.0.3
     # via
     #   flask
     #   jinja2
     #   werkzeug
-openstep-plist==0.5.2
-    # via glyphslib
 opentype-sanitizer==9.2.0
     # via gftools
 pillow==11.3.0
@@ -115,7 +118,9 @@ requests==2.32.5
     #   gftools
     #   pygithub
 six==1.17.0
-    # via python-dateutil
+    # via
+    #   fs
+    #   python-dateutil
 smmap==5.0.3
     # via gitdb
 strictyaml==1.7.3
@@ -132,13 +137,11 @@ ufo2ft[cffsubr]==2.19.2
     # via
     #   -r requirements.in
     #   fontmake
-ufolib2==0.18.1
+ufolib2==0.17.1
     # via
     #   fontmake
     #   glyphslib
     #   vttlib
-unicodedata2==17.0.1
-    # via fonttools
 unidecode==1.4.0
     # via gftools
 urllib3==2.6.3
