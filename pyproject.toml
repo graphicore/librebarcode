@@ -10,6 +10,24 @@ dependencies = [
     "ttfautohint-py==0.6.0",
 ]
 
+# ttfautohint-py ships the ttfautohint binary as package data and doesn't
+# install a console script. fontmake 2.3.0 invokes plain `ttfautohint`
+# via subprocess and expects it on PATH. This shim exposes the Python CLI
+# wrapper (which locates the bundled binary) in the venv's bin/. (Newer fontmake
+# uses the Python API directly; 2.3.0 is pinned for reproducible output.)
+[project.scripts]
+ttfautohint = "ttfautohint.cli:main"
+
+# `project.scripts` requires the project to be built as a Python package; the
+# wheel is empty except for `ttfautohint` above.
+[build-system]
+requires = ["setuptools==79.0.1"]
+build-backend = "setuptools.build_meta"
+
+# This tells setuptools not to go looking for Python modules in this repo.
+[tool.setuptools]
+py-modules = []
+
 [tool.uv]
 constraint-dependencies = [
     "fonttools==4.18.1",

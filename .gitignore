@@ -5,10 +5,12 @@
 # font editor temporary files
 *(Autosaved).glyphs
 *.vfbak
-node_modules
-bower_components
-/sources
-/venv
+node_modules/
+bower_components/
+sources/
+venv/
 _site
 .sass-cache
 .jekyll-metadata
+# setuptools build artifacts
+librebarcode.egg-info/
