@@ -30,30 +30,27 @@ Fonts to write barcodes.
 
 You'll need these installed and configured first:
 
-- `git`
-- `bash` (or compatible shell, like `zsh`)
-- `node` – v18.20.8 is pinned and >v18 will not build. (>=v14.13.1 is confirmed to work, except on ARM Macs
-  which only have access to >=v16).
-  - `fnm` or `vp env` (Vite+) recommended for Node version management
-- `bower`
-- `uv`
-
-Are dependencies missing? Please, let me know.
+* `git`
+* `bash` (or compatible shell, like `zsh`)
+* [`node`](https://nodejs.org/) – [`fnm`](https://github.com/Schniz/fnm/) or
+  [`vp env`](https://viteplus.dev/guide/env) is recommended for Node.js
+  version management; `nvm` won't respect the pinned Node.js version.
+* [`uv`](https://docs.astral.sh/uv/)
 
 ```shell
 # fetch the sources
 path/to $ git clone git@github.com:graphicore/librebarcode.git
 path/to $ cd librebarcode
 
-# switch to pinned JS version if necessary, e.g.
+# install and switch to the pinned Node.js version if necessary, e.g.
 path/to/librebarcode $ n use
-# fnm or vp env will do this for you
+# ℹ️ fnm or vp env will do this for you
 
 # install JavaScript dependencies
 path/to/librebarcode $ npm install
-path/to/librebarcode $ bower install
+path/to/librebarcode $ npx bower install
 
-# install Python and Python dependencies
+# install the pinned Python version and Python dependencies
 path/to/librebarcode $ uv sync
 
 # now build (uv run ensures the Python venv is on PATH)
