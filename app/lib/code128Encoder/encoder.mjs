@@ -126,7 +126,7 @@ function CodeSymbol(value, checksumValue, code, switchedCode, char, isCtrl) {
       , char: {value: char}
       , weight: {value: weight(isCtrl, value)}
       , isCtrl: {value: isCtrl}
-      , isShif: {value: (new Set(['Shift B', 'Shift A'])).has(value)}
+      , isShift: {value: (new Set(['Shift B', 'Shift A'])).has(value)}
       , isSwitch: {value: !!switchedCode}
     });
 }
