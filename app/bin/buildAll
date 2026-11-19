@@ -16,7 +16,7 @@ function printHelp {
     echo "All targets: ${ALL_TARGETS[@]}"
 }
 
-ALL_TARGETS=( CODE39 CODE39TEXT CODE39EXTENDED CODE39EXTENDEDTEXT CODE128 CODE128TEXT EAN13TEXT )
+ALL_TARGETS=( CODE39 CODE39TEXT CODE39TIGHT CODE39EXTENDED CODE39EXTENDEDTEXT CODE39EXTENDEDTIGHT CODE128 CODE128TEXT EAN13TEXT )
 
 
 if [ "$#" -eq 0 ]; then
@@ -69,7 +69,7 @@ function configure {
     local COPYRIGHT="Copyright 2017-2020 The $FAMILY_BASE_NAME Project Authors (https://github.com/graphicore/librebarcode)"
 
     # without EAN13TEXT
-    local TARGETS=(CODE39 CODE39TEXT CODE39EXTENDED CODE39EXTENDEDTEXT CODE128 CODE128TEXT)
+    local TARGETS=(CODE39 CODE39TEXT CODE39TIGHT CODE39EXTENDED CODE39EXTENDEDTEXT CODE39EXTENDEDTIGHT CODE128 CODE128TEXT)
     if isTarget "$TARGET"; then
         local UNITS_PER_EM=1000
         local ASCENDER=600
@@ -94,14 +94,26 @@ function configure {
             )
         elif [ "$TARGET" = "CODE39TEXT" ]; then
             TARGET_DATA=("39Text" "Code39" 1 "39 Text")
+        elif [ "$TARGET" = "CODE39TIGHT" ]; then
+            TARGET_DATA=("39Tight" "Code39" 0 "39 Tight")
         elif [ "$TARGET" = "CODE39EXTENDED" ]; then
             TARGET_DATA=("39Extended" "Code39Extended" 0 "39 Extended")
         elif [ "$TARGET" = "CODE39EXTENDEDTEXT" ]; then
             TARGET_DATA=("39ExtendedText" "Code39Extended" 1 "39 Extended Text")
+        elif [ "$TARGET" = "CODE39EXTENDEDTIGHT" ]; then
+            TARGET_DATA=("39ExtendedTight" "Code39Extended" 0 "39 Extended Tight")
         elif [ "$TARGET" = "CODE128" ]; then
             TARGET_DATA=("128" "Code128" 0 "128")
         elif [ "$TARGET" = "CODE128TEXT" ]; then
             TARGET_DATA=("128Text" "Code128" 1 "128 Text")
+        fi
+
+        if [ "$TARGET" = "CODE39TIGHT" ] || [ "$TARGET" = "CODE39EXTENDEDTIGHT" ]; then
+            ASCENDER=$UNITS_PER_EM
+            DESCENDER=0
+            X_HEIGHT=$ASCENDER
+            CAP_HEIGHT=$ASCENDER
+            PARAMETERS="{\"top\": $ASCENDER, \"tightStop\": true}"
         fi
 
     elif [ "$TARGET" = "EAN13TEXT" ]; then

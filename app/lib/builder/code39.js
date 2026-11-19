@@ -194,6 +194,7 @@ define([
     })(abstract.BarcodeGlyph);
 
     var Parent = abstract.BarcodeBuilder;
+    const TIGHT_STOP_NAME = 'code.stop.tight';
 
     function Code39Builder(userParameters, fontInfo, fontBelow) {
         Parent.call(this, fontInfo, fontBelow);
@@ -256,7 +257,31 @@ define([
         return charcode2name(charcode);
     };
 
+    _p.drawRawSymbols = function(glyphSet) {
+        Parent.prototype.drawRawSymbols.call(this, glyphSet);
+        if(this.fontBelow || !this.parameters.tightStop)
+            return;
+
+        const delimiter = this.getGlyphByChar('*');
+        const width = delimiter.width - this.parameters.narrowWhite;
+        this._writeGlyph(glyphSet, TIGHT_STOP_NAME, {width, unicodes: []},
+                         pen => this._penAddComponent(pen, delimiter.name));
+    };
+
     _p.getFeatures = function() {
+        let tightStopRules = '';
+        if(!this.fontBelow && this.parameters.tightStop) {
+            const delimiter = this.compositeCharcodeToGlyphName('*');
+            const symbols = [];
+            for(let glyph of this.glyphs)
+                for(let [name] of glyph.createComposites(false))
+                    symbols.push(name);
+            // Keep the inter-character gap after the start symbol.
+            tightStopRules = `
+    @barcodeSymbols = [${symbols.join(' ')}];
+    ignore sub @barcodeSymbols ${delimiter}' @barcodeSymbols;
+    sub @barcodeSymbols ${delimiter}' by ${TIGHT_STOP_NAME};`;
+        }
         var feature = `
 # This fixes #25 when calt is available but it breaks the font in
 # MS-Word, if "Contextual Alternates" is not set.
@@ -266,7 +291,7 @@ define([
 # Also, using "Â" instead of " " is a direct workaround when
 # OpenType is not available.
 feature calt {
-    sub ${ this.compositeCharcodeToGlyphName(' ') } by ${ this.compositeCharcodeToGlyphName('Â') };
+    sub ${ this.compositeCharcodeToGlyphName(' ') } by ${ this.compositeCharcodeToGlyphName('Â') };${tightStopRules}
 } calt;
 `;
         return feature;

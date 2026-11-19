@@ -8,8 +8,10 @@ Available font variants:
 
   * **Libre Barcode 39** is without text below.
   * **Libre Barcode 39 Text** has text below.
+  * **Libre Barcode 39 Tight** has only bars spanning the full em height.
   * **Libre Barcode 39 Extended** supports additional characters, and is without text below.
   * **Libre Barcode 39 Extended Text** supports additional characters, and has text below.
+  * **Libre Barcode 39 Extended Tight** has only bars spanning the full em height.
 
 To use these wrap the text to encode into `*` asterisks, enter `*HELLO WORLD*`:
 
