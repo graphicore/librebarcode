@@ -8,8 +8,10 @@ Fonts to write barcodes.
 
 * Libre Barcode 39
 * Libre Barcode 39 Text
-* Libre Barcode Extended 39
-* Libre Barcode Extended 39 Text
+* Libre Barcode 39 Tight (bars only, full em height)
+* Libre Barcode 39 Extended
+* Libre Barcode 39 Extended Text
+* Libre Barcode 39 Extended Tight (bars only, full em height)
 
 [Code 39 manual](https://graphicore.github.io/librebarcode/documentation/code39)
 
